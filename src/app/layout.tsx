@@ -1,38 +1,36 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import { Toaster as Sonner } from "@/components/ui/sonner";
 
 export const metadata: Metadata = {
-  title: "Z.ai Code Scaffold - AI-Powered Development",
-  description: "Modern Next.js scaffold optimized for AI-powered development with Z.ai. Built with TypeScript, Tailwind CSS, and shadcn/ui.",
-  keywords: ["Z.ai", "Next.js", "TypeScript", "Tailwind CSS", "shadcn/ui", "AI development", "React"],
-  authors: [{ name: "Z.ai Team" }],
-  icons: {
-    icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
-  },
+  title: "TDC | تیمار دنتال سنتر — طراحی CAD دندانپزشکی",
+  description:
+    "TDC (Timar Dental Center) — شریک طراحی دیجیتال لابراتوارها و کلینیک‌های دندانپزشکی: کراون-بریج، ایمپلنت، رمووابل، فول-آرک و طراحی لبخند دیجیتال با تعرفه شفاف تومانی.",
+  keywords: [
+    "TDC",
+    "Timar Dental Center",
+    "طراحی CAD دندانپزشکی",
+    "دندانپزشکی دیجیتال",
+    "کراون بریج",
+    "ایمپلنت",
+    "فول آرک",
+    "dental CAD",
+  ],
+  authors: [{ name: "Timar Dental Center" }],
   openGraph: {
-    title: "Z.ai Code Scaffold",
-    description: "AI-powered development with modern React stack",
-    url: "https://chat.z.ai",
-    siteName: "Z.ai",
+    title: "TDC | Timar Dental Center — طراحی CAD دندانپزشکی",
+    description:
+      "فایل اسکن را بفرستید، طراحی سازگار با 3Shape و exocad را تحویل بگیرید. تعرفه شفاف تومانی، اصلاحات نامحدود.",
+    siteName: "TDC — Timar Dental Center",
     type: "website",
   },
-  twitter: {
-    card: "summary_large_image",
-    title: "Z.ai Code Scaffold",
-    description: "AI-powered development with modern React stack",
-  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0a0c0f",
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({
@@ -41,12 +39,20 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
-      >
+    <html lang="fa" dir="rtl" suppressHydrationWarning>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
+        <link
+          href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body className="antialiased bg-background text-foreground">
         {children}
         <Toaster />
+        <Sonner position="bottom-left" richColors theme="dark" />
       </body>
     </html>
   );

@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,20 +7,106 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ============ Users & Auth ============
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String       @id @default(cuid())
+  email        String       @unique
+  password     String // bcrypt hash
+  name         String
+  role         String       @default("LAB") // ADMIN | LAB
+  labName      String?
+  phone        String?
+  city         String?
+  // Customer-club infrastructure (feature ships later)
+  points       Int          @default(0)
+  referralCode String?      @unique
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  cases        Case[]
 }
 
-model Post {
+// ============ Portfolio (Case Vault) ============
+model PortfolioItem {
+  id           String   @id @default(cuid())
+  title        String
+  titleEn      String?
+  description  String
+  descriptionEn String?
+  category     String // IMPLANTS | CROWN_BRIDGE | REMOVABLE | DSD | FULL_ARCH
+  badge        String? // e.g. ZIRCONIA / IMPLANT / DSD
+  images       String   @default("[]") // JSON array of image paths
+  files        String   @default("[]") // JSON array of {path,name,size}
+  published    Boolean  @default(true)
+  sortOrder    Int      @default(0)
+  views        Int      @default(0)
+  downloads    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// ============ Services & Pricing (Toman) ============
+model Service {
+  id         String  @id @default(cuid())
+  category   String // CROWN_BRIDGE | IMPLANT | REMOVABLE | FULL_ARCH | DSD
+  name       String
+  nameEn     String
+  price      Float // Toman
+  unit       String  @default("/unit") // /unit | /arch | /case
+  turnaround String  @default("۱ تا ۲ ساعت")
+  active     Boolean @default(true)
+  sortOrder  Int     @default(0)
+}
+
+// ============ Editable site content ============
+model SiteSetting {
+  key   String @id
+  value String // JSON-encoded
+}
+
+// ============ Lab cases ============
+model Case {
+  id            String        @id @default(cuid())
+  code          String        @unique // TDC-1042
+  userId        String
+  user          User          @relation(fields: [userId], references: [id])
+  patientName   String?
+  toothNumbers  String?
+  serviceType   String // CROWN_BRIDGE | IMPLANT | REMOVABLE | FULL_ARCH | DSD
+  notes         String?
+  status        String        @default("RECEIVED") // RECEIVED | IN_DESIGN | QC | DELIVERED | CANCELLED
+  adminNote     String?
+  price         Float?
+  files         String        @default("[]") // JSON [{path,name,size}]
+  deliveryFiles String        @default("[]") // JSON [{path,name,size}]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  messages      CaseMessage[]
+}
+
+model CaseMessage {
   id        String   @id @default(cuid())
-  title     String
-  content   String?
-  published Boolean  @default(false)
-  authorId  String
+  caseId    String
+  case      Case     @relation(fields: [caseId], references: [id])
+  fromAdmin Boolean  @default(false)
+  body      String
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+}
+
+// ============ Public inquiries (Talk To Us) ============
+model Inquiry {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  topic     String   @default("GENERAL")
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+// ============ Rate-card / newsletter subscribers ============
+model Subscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
 }
