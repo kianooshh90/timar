@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Download, Eye, FolderOpen } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { useTdc, parseJson, st, type PortfolioItem } from "./store";
+import { useTdc, parseJson, parseImageUrls, st, type PortfolioItem } from "./store";
 import { t, UI, VAULT_FILTERS } from "./i18n";
 import { SectionHead } from "./SectionHead";
 
@@ -82,7 +82,7 @@ export function CaseVault() {
 
 function VaultCard({ item }: { item: PortfolioItem }) {
   const { lang, openOverlay } = useTdc();
-  const images = parseJson<string[]>(item.images, []);
+  const images = parseImageUrls(item.images);
   const files = parseJson<{ path: string; name: string; size: number }[]>(item.files, []);
   const title = lang === "fa" ? item.title : item.titleEn || item.title;
   const desc = lang === "fa" ? item.description : item.descriptionEn || item.description;

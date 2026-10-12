@@ -5,7 +5,7 @@ import { Download, FileDown, FolderOpen, ArrowLeft } from "lucide-react";
 import Image from "next/image";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { useTdc, parseJson } from "../store";
+import { useTdc, parseJson, parseImageUrls } from "../store";
 import { t, UI, fmtBytes } from "../i18n";
 
 export function PortfolioModal() {
@@ -26,7 +26,7 @@ export function PortfolioModal() {
     );
   }
 
-  const images = parseJson<string[]>(item.images, []);
+  const images = parseImageUrls(item.images);
   const files = parseJson<{ path: string; name: string; size: number }[]>(item.files, []);
   const title = lang === "fa" ? item.title : item.titleEn || item.title;
   const desc = lang === "fa" ? item.description : item.descriptionEn || item.description;

@@ -275,7 +275,7 @@ function AdminPortfolio() {
               <div key={item.id} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-card p-3">
                 <div className="h-16 w-20 shrink-0 overflow-hidden rounded-xl bg-black/40">
                   {imgs[0] && (
-                    <img src={imgs[0]} alt="" className="h-full w-full object-cover" />
+                    <img src={typeof imgs[0] === "string" ? (imgs[0] as unknown as string) : imgs[0].path} alt="" className="h-full w-full object-cover" />
                   )}
                 </div>
                 <div className="min-w-0 flex-1">

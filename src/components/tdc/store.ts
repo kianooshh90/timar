@@ -181,3 +181,11 @@ export function parseJson<T>(raw: string | undefined | null, fallback: T): T {
     return fallback;
   }
 }
+
+/** Portfolio images may be stored as plain URL strings (seed data) or as {path,name,size} objects (admin uploads). Always return URL strings. */
+export function parseImageUrls(raw: string | undefined | null): string[] {
+  const arr = parseJson<unknown[]>(raw, []);
+  return arr
+    .map((x) => (typeof x === "string" ? x : (x as { path?: string } | null)?.path))
+    .filter((x): x is string => typeof x === "string" && x.length > 0);
+}
