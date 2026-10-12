@@ -235,7 +235,7 @@ export function CtaBand() {
         transition={{ duration: 0.6 }}
         className="relative mx-auto max-w-3xl px-4 text-center"
       >
-        <h2 className="text-3xl font-black text-white sm:text-4xl">{t(UI.cta.title, lang)}</h2>
+        <h2 className="text-4xl font-black leading-tight text-white sm:text-5xl">{t(UI.cta.title, lang)}</h2>
         <p className="mt-3 text-white/55">{t(UI.cta.sub, lang)}</p>
         <Button
           size="lg"

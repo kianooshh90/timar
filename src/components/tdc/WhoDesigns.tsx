@@ -3,10 +3,31 @@
 import { useCallback, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Check, X, MoveHorizontal, ArrowLeft } from "lucide-react";
-import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { useTdc, st, parseJson } from "./store";
 import { t, UI } from "./i18n";
+
+const DEFAULT_WHO_IMAGE = "/images/site/abutment.png";
+
+/** Text between *stars* is shown with the orange gradient highlight. */
+function Highlighted({ text }: { text: string }) {
+  const parts = text.split("*");
+  return (
+    <>
+      {parts.map((part, i) =>
+        i % 2 === 1 ? (
+          <span key={i} className="text-gradient">{part}</span>
+        ) : (
+          <span key={i}>{part}</span>
+        )
+      )}
+    </>
+  );
+}
+
+function toList(raw: string | undefined): string[] {
+  return parseJson<unknown[]>(raw, []).filter((x): x is string => typeof x === "string" && x.trim().length > 0);
+}
 
 export function WhoDesigns() {
   const { site, lang, user, openOverlay } = useTdc();
@@ -15,8 +36,17 @@ export function WhoDesigns() {
   const containerRef = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
 
-  const left = parseJson<string[]>(s?.compareLeft, []);
-  const right = parseJson<string[]>(s?.compareRight, []);
+  const left = toList(s?.compareLeft);
+  const right = toList(s?.compareRight);
+
+  const kicker = st(s, "whoKicker", lang) || t(UI.who.kicker, lang);
+  const title =
+    st(s, "whoTitle", lang) ||
+    (lang === "fa"
+      ? "طراحی هر کیس توسط *متخصصان باتجربه CAD* انجام می‌شود."
+      : "Case design led by *experienced dental CAD specialists*.");
+  const whoImage = s?.whoImage || DEFAULT_WHO_IMAGE;
+  const compareHeight = Math.max(340, 110 + Math.max(left.length, right.length) * 64);
 
   const updateFromClientX = useCallback((clientX: number) => {
     const el = containerRef.current;
@@ -53,42 +83,34 @@ export function WhoDesigns() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
-            className="font-display text-[11px] font-semibold uppercase tracking-[0.28em] text-orange-500"
+            className="font-display text-xs font-semibold uppercase tracking-[0.28em] text-orange-500"
           >
-            {t(UI.who.kicker, lang)}
+            {kicker}
           </motion.p>
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.08 }}
-            className="mt-3 text-3xl font-extrabold leading-snug text-white sm:text-4xl"
+            className="mt-3 text-4xl font-black leading-snug text-white sm:text-5xl"
           >
-            {lang === "fa" ? (
-              <>
-                طراحی هر کیس توسط <span className="text-gradient">متخصصان باتجربه CAD</span> انجام می‌شود.
-              </>
-            ) : (
-              <>
-                Case design led by <span className="text-gradient">experienced dental CAD specialists</span>.
-              </>
-            )}
+            <Highlighted text={title} />
           </motion.h2>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.15 }}
-            className="mt-4 leading-8 text-white/60"
+            className="mt-5 text-lg leading-9 text-white/60"
           >
             {st(s, "whoDesigns", lang)}
           </motion.p>
           <div className="mt-8 overflow-hidden rounded-3xl border border-white/10">
-            <Image
-              src="/images/site/abutment.png"
-              alt={lang === "fa" ? "اباتمنت اختصاصی طراحی‌شده در TDC" : "Custom abutment designed at TDC"}
-              width={720}
-              height={540}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={whoImage}
+              alt={title.replace(/\*/g, "")}
+              loading="lazy"
               className="h-auto w-full object-cover transition-transform duration-700 hover:scale-105"
             />
           </div>
@@ -121,11 +143,11 @@ export function WhoDesigns() {
             {/* Right panel (TDC) */}
             <div className="absolute inset-0 bg-gradient-to-b from-teal-950/60 to-[#0c1512] p-6 pt-16">
               <span className="absolute end-4 top-4 rounded-full bg-teal-500/15 px-3 py-1 font-display text-[10px] font-bold tracking-[0.2em] text-teal-300">
-                {lang === "fa" ? "TDC" : st(s, "compareRightTitle", lang) || "TDC"}
+                {st(s, "compareRightTitle", lang) || "TDC"}
               </span>
               <ul className="space-y-4">
                 {right.map((item, i) => (
-                  <li key={i} className="flex items-start gap-2.5 text-sm text-white/85">
+                  <li key={i} className="flex items-start gap-2.5 text-base text-white/85">
                     <Check className="mt-0.5 h-4 w-4 shrink-0 text-teal-400" />
                     {item}
                   </li>
@@ -138,11 +160,11 @@ export function WhoDesigns() {
               style={{ clipPath: `inset(0 ${100 - pos}% 0 0)` }}
             >
               <span className="absolute start-4 top-4 rounded-full bg-red-500/15 px-3 py-1 font-display text-[10px] font-bold tracking-[0.2em] text-red-400">
-                {lang === "fa" ? "تامین‌کننده معمولی" : "TYPICAL VENDOR"}
+                {st(s, "compareLeftTitle", lang) || (lang === "fa" ? "تامین‌کننده معمولی" : "TYPICAL VENDOR")}
               </span>
               <ul className="space-y-4">
                 {left.map((item, i) => (
-                  <li key={i} className="flex items-start gap-2.5 text-sm text-white/70">
+                  <li key={i} className="flex items-start gap-2.5 text-base text-white/70">
                     <X className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
                     {item}
                   </li>
@@ -156,7 +178,7 @@ export function WhoDesigns() {
               </span>
             </div>
             {/* min-height wrapper */}
-            <div className="pointer-events-none relative h-[340px] w-full" aria-hidden />
+            <div className="pointer-events-none relative w-full" style={{ height: compareHeight }} aria-hidden />
           </div>
           <p className="mt-3 text-center font-display text-[10px] font-bold uppercase tracking-[0.3em] text-white/30">
             ← {t(UI.who.drag, lang)} →

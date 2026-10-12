@@ -32,11 +32,11 @@ export function Process() {
     <section id="process" className="relative bg-surface py-24">
       <div className="mx-auto max-w-6xl px-4">
         <div className="text-start">
-          <p className="font-display text-[11px] font-semibold uppercase tracking-[0.28em] text-orange-500">
+          <p className="font-display text-xs font-semibold uppercase tracking-[0.28em] text-orange-500">
             {t(UI.process.kicker, lang)}
           </p>
-          <h2 className="mt-3 text-3xl font-extrabold text-white sm:text-4xl">{t(UI.process.title, lang)}</h2>
-          <p className="mt-3 text-white/50">{t(UI.process.subtitle, lang)}</p>
+          <h2 className="mt-3 text-4xl font-black leading-tight text-white sm:text-5xl">{t(UI.process.title, lang)}</h2>
+          <p className="mt-4 text-lg text-white/55">{t(UI.process.subtitle, lang)}</p>
         </div>
 
         <div className="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -112,32 +112,10 @@ export function Services() {
   const { site, lang } = useTdc();
   const services = site?.services ?? [];
 
-  const groups: { key: string; titleFa: string; titleEn: string; descFa: string; descEn: string; cats: string[] }[] = [
-    {
-      key: "fixed",
-      titleFa: "طراحی ثابت (کراون-بریج و ایمپلنت)",
-      titleEn: "Fixed (Crown & Bridge + Implant)",
-      descFa: "از کاپینگ ساده تا کراوان روی اباتمنت اختصاصی",
-      descEn: "From simple copings to crowns over custom abutments",
-      cats: ["CROWN_BRIDGE", "IMPLANT"],
-    },
-    {
-      key: "removable",
-      titleFa: "رمووابل",
-      titleEn: "Removables",
-      descFa: "دست‌دندان کامل و پارسیل با ست‌آپ دیجیتال",
-      descEn: "Complete & partial dentures with digital setup",
-      cats: ["REMOVABLE"],
-    },
-    {
-      key: "arch-smile",
-      titleFa: "فول-آرک و طراحی لبخند",
-      titleEn: "Full-Arch & Smile Design",
-      descFa: "هایبرید، بار و برنامه‌ریزی لبخند دیجیتال",
-      descEn: "Hybrids, bars, and digital smile planning",
-      cats: ["FULL_ARCH", "DSD"],
-    },
-  ];
+  // One wide card. Every active crown-bridge / implant tariff added from the admin panel
+  // flows into it automatically (two columns on larger screens), so extra tariffs use the space.
+  const FIXED_CATS = ["CROWN_BRIDGE", "IMPLANT"];
+  const items = services.filter((sv) => FIXED_CATS.includes(sv.category));
 
   const scrollToPricing = () => document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" });
 
@@ -145,44 +123,46 @@ export function Services() {
     <section id="services" className="relative bg-background py-24">
       <div className="mx-auto max-w-6xl px-4">
         <SectionHead settingKey="services" />
-        <div className="mt-12 grid gap-5 lg:grid-cols-3">
-          {groups.map((g, gi) => {
-            const items = services.filter((sv) => g.cats.includes(sv.category));
-            const minPrice = items.length ? Math.min(...items.map((i) => i.price)) : 0;
-            return (
-              <motion.div
-                key={g.key}
-                initial={{ opacity: 0, y: 28 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-60px" }}
-                transition={{ duration: 0.55, delay: gi * 0.1 }}
-                className="card-hover flex flex-col rounded-3xl border border-white/10 bg-surface p-7"
-              >
-                <h3 className="text-xl font-extrabold text-white">{lang === "fa" ? g.titleFa : g.titleEn}</h3>
-                <p className="mt-1.5 text-sm text-white/50">{lang === "fa" ? g.descFa : g.descEn}</p>
-                <ul className="mt-5 flex-1 space-y-3">
-                  {items.map((sv) => (
-                    <li key={sv.id} className="flex items-center justify-between gap-2 text-sm">
-                      <span className="flex items-center gap-2 text-white/75">
-                        <span className="h-1 w-4 rounded-full bg-orange-500/60" />
-                        {lang === "fa" ? sv.name : sv.nameEn}
-                      </span>
-                      <span className="shrink-0 rounded-full bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-orange-300/90 tabular-nums">
-                        {new Intl.NumberFormat(lang === "fa" ? "fa-IR" : "en-US").format(sv.price)}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-                <button
-                  onClick={scrollToPricing}
-                  className="mt-6 inline-flex items-center gap-1 text-sm font-bold text-orange-400 transition hover:gap-2 hover:text-orange-300"
+        <motion.div
+          initial={{ opacity: 0, y: 28 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 0.55 }}
+          className="card-hover mx-auto mt-12 flex max-w-4xl flex-col rounded-3xl border border-white/10 bg-surface p-7 sm:p-10"
+        >
+          <h3 className="text-2xl font-extrabold text-white sm:text-3xl">
+            {lang === "fa" ? "طراحی ثابت (کراون-بریج و ایمپلنت)" : "Fixed (Crown & Bridge + Implant)"}
+          </h3>
+          <p className="mt-2 text-sm text-white/50 sm:text-base">
+            {lang === "fa"
+              ? "از کاپینگ ساده تا کراون روی اباتمنت اختصاصی"
+              : "From simple copings to crowns over custom abutments"}
+          </p>
+          {items.length > 0 && (
+            <ul className="mt-8 grid gap-x-10 gap-y-4 md:grid-cols-2">
+              {items.map((sv) => (
+                <li
+                  key={sv.id}
+                  className="flex items-center justify-between gap-3 border-b border-dashed border-white/10 pb-4 text-sm sm:text-base"
                 >
-                  {t(UI.services.viewAll, lang)}
-                </button>
-              </motion.div>
-            );
-          })}
-        </div>
+                  <span className="flex items-center gap-2 text-white/80">
+                    <span className="h-1 w-4 shrink-0 rounded-full bg-orange-500/60" />
+                    {lang === "fa" ? sv.name : sv.nameEn}
+                  </span>
+                  <span className="shrink-0 rounded-full bg-white/5 px-3 py-1 text-xs font-semibold text-orange-300/90 tabular-nums">
+                    {new Intl.NumberFormat(lang === "fa" ? "fa-IR" : "en-US").format(sv.price)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <button
+            onClick={scrollToPricing}
+            className="mt-8 inline-flex items-center gap-1 self-start text-sm font-bold text-orange-400 transition hover:gap-2 hover:text-orange-300"
+          >
+            {t(UI.services.viewAll, lang)}
+          </button>
+        </motion.div>
       </div>
     </section>
   );

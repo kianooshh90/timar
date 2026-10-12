@@ -567,7 +567,7 @@ function AdminSubscribers() {
 interface FieldDef {
   key: string;
   label: string;
-  type?: "text" | "textarea" | "switch";
+  type?: "text" | "textarea" | "switch" | "image" | "lines";
   bilingual?: boolean;
 }
 
@@ -594,9 +594,14 @@ const TEXT_GROUPS: { title: string; fields: FieldDef[] }[] = [
   {
     title: "چه کسی طراحی می‌کند / مقایسه",
     fields: [
-      { key: "whoDesigns", label: "متن بخش", bilingual: true, type: "textarea" },
-      { key: "compareLeft", label: "لیست تامین‌کننده معمولی (هر خط یک مورد)" },
-      { key: "compareRight", label: "لیست TDC (هر خط یک مورد)" },
+      { key: "whoKicker", label: "برچسب کوچک بالای تیتر", bilingual: true },
+      { key: "whoTitle", label: "تیتر (کلمه‌های بین دو ستاره، مثل *این*، رنگی می‌شوند)", bilingual: true },
+      { key: "whoDesigns", label: "متن زیر تیتر", bilingual: true, type: "textarea" },
+      { key: "whoImage", label: "عکس بخش", type: "image" },
+      { key: "compareLeftTitle", label: "عنوان ستون «تامین‌کننده معمولی»", bilingual: true },
+      { key: "compareLeft", label: "لیست تامین‌کننده معمولی (هر خط یک مورد)", type: "lines" },
+      { key: "compareRightTitle", label: "عنوان ستون TDC", bilingual: true },
+      { key: "compareRight", label: "لیست TDC (هر خط یک مورد)", type: "lines" },
     ],
   },
   {
@@ -657,6 +662,15 @@ function AdminTexts() {
   const save = async () => {
     setSaving(true);
     const payload: Record<string, string> = { ...values, faq: JSON.stringify(faqItems), process: JSON.stringify(processItems) };
+    // "one item per line" lists: drop empty lines before saving
+    for (const k of ["compareLeft", "compareRight"]) {
+      if (typeof payload[k] === "string") {
+        try {
+          const arr = JSON.parse(payload[k]);
+          if (Array.isArray(arr)) payload[k] = JSON.stringify(arr.map((x) => String(x).trim()).filter(Boolean));
+        } catch { /* keep as is */ }
+      }
+    }
     const res = await fetch("/api/admin/settings", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -751,7 +765,79 @@ function AdminTexts() {
   );
 }
 
+function SettingImage({ def, values, set }: { def: FieldDef; values: Record<string, string>; set: (k: string, v: string) => void }) {
+  const lang = useTdc((st) => st.lang);
+  const fa = lang === "fa";
+  const url = values[def.key] || "";
+  return (
+    <div>
+      <Label className="text-white/55">{def.label}</Label>
+      <div className="mt-1.5 space-y-3">
+        {url ? (
+          <div className="overflow-hidden rounded-2xl border border-white/10 bg-black/30">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={url} alt="" className="max-h-56 w-full object-cover" />
+          </div>
+        ) : (
+          <p className="text-xs text-white/40">
+            {fa ? "عکسی انتخاب نشده؛ عکس پیش‌فرض سایت نمایش داده می‌شود." : "No image chosen; the site default is shown."}
+          </p>
+        )}
+        <FileDrop
+          kind="portfolio-image"
+          value={[]}
+          multiple={false}
+          compact
+          accept="image/*"
+          onChange={(files) => {
+            const f = files[files.length - 1];
+            if (f) set(def.key, f.path);
+          }}
+        />
+        {url && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="text-white/50 hover:text-red-400"
+            onClick={() => set(def.key, "")}
+          >
+            <Trash2 className="me-1 h-3.5 w-3.5" />
+            {fa ? "حذف عکس (بازگشت به عکس پیش‌فرض)" : "Remove image (use default)"}
+          </Button>
+        )}
+      </div>
+      <p className="mt-1.5 text-[11px] text-white/35">
+        {fa ? "بعد از آپلود عکس، دکمه «ذخیره» را بزنید تا روی سایت اعمال شود." : "After uploading, press Save to apply it on the site."}
+      </p>
+    </div>
+  );
+}
+
 function SettingField({ def, values, set }: { def: FieldDef; values: Record<string, string>; set: (k: string, v: string) => void }) {
+  if (def.type === "image") {
+    return <SettingImage def={def} values={values} set={set} />;
+  }
+  if (def.type === "lines") {
+    let lines: string[] = [];
+    try {
+      const arr = JSON.parse(values[def.key] || "[]");
+      lines = Array.isArray(arr) ? arr.map((x) => String(x)) : [];
+    } catch {
+      lines = (values[def.key] || "").split("\n");
+    }
+    return (
+      <div>
+        <Label className="text-white/55">{def.label}</Label>
+        <Textarea
+          rows={5}
+          value={lines.join("\n")}
+          onChange={(e) => set(def.key, JSON.stringify(e.target.value.split("\n")))}
+          className="mt-1.5 rounded-xl border-white/15 bg-white/5 text-sm text-white"
+        />
+      </div>
+    );
+  }
   if (def.type === "switch") {
     return (
       <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">

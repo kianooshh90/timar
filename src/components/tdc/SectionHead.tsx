@@ -16,15 +16,15 @@ export function SectionHead({ settingKey, fallbackKicker }: { settingKey: string
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-80px" }}
       transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-      className="mx-auto max-w-2xl text-center"
+      className="mx-auto max-w-3xl text-center"
     >
       {kicker && (
-        <p className="font-display text-[11px] font-semibold uppercase tracking-[0.28em] text-orange-500">
+        <p className="font-display text-xs font-semibold uppercase tracking-[0.28em] text-orange-500">
           {kicker}
         </p>
       )}
-      {title && <h2 className="mt-3 text-3xl font-extrabold leading-tight text-white sm:text-4xl">{title}</h2>}
-      {subtitle && <p className="mt-4 text-base leading-relaxed text-white/60">{subtitle}</p>}
+      {title && <h2 className="mt-3 text-4xl font-black leading-tight text-white sm:text-5xl">{title}</h2>}
+      {subtitle && <p className="mt-4 text-lg leading-relaxed text-white/60">{subtitle}</p>}
     </motion.div>
   );
 }
