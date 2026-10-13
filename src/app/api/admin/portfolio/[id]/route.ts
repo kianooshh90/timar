@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
+import { revalidateSite } from "@/lib/revalidate";
 import { handleApiError, jsonError } from "@/lib/api";
 
 export async function PUT(
@@ -25,6 +26,7 @@ export async function PUT(
     if (body.published !== undefined) data.published = !!body.published;
     if (body.sortOrder !== undefined) data.sortOrder = Number(body.sortOrder);
     const item = await db.portfolioItem.update({ where: { id }, data });
+    revalidateSite();
     return NextResponse.json({ ok: true, item });
   } catch (e) {
     return handleApiError(e);
@@ -39,6 +41,7 @@ export async function DELETE(
     await requireAdmin();
     const { id } = await params;
     await db.portfolioItem.delete({ where: { id } });
+    revalidateSite();
     return NextResponse.json({ ok: true });
   } catch (e) {
     return handleApiError(e);

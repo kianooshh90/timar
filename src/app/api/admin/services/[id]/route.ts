@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
+import { revalidateSite } from "@/lib/revalidate";
 import { handleApiError, jsonError } from "@/lib/api";
 
 export async function PUT(
@@ -21,6 +22,7 @@ export async function PUT(
     if (body.active !== undefined) data.active = !!body.active;
     if (body.sortOrder !== undefined) data.sortOrder = Number(body.sortOrder);
     const service = await db.service.update({ where: { id }, data });
+    revalidateSite();
     return NextResponse.json({ ok: true, service });
   } catch (e) {
     return handleApiError(e);
@@ -35,6 +37,7 @@ export async function DELETE(
     await requireAdmin();
     const { id } = await params;
     await db.service.delete({ where: { id } });
+    revalidateSite();
     return NextResponse.json({ ok: true });
   } catch (e) {
     return handleApiError(e);

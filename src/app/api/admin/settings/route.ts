@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
+import { revalidateSite } from "@/lib/revalidate";
 import { handleApiError, jsonError } from "@/lib/api";
 
 export async function PUT(req: NextRequest) {
@@ -14,6 +15,7 @@ export async function PUT(req: NextRequest) {
         create: { key, value: String(value) },
       });
     }
+    revalidateSite();
     return NextResponse.json({ ok: true, saved: Object.keys(body).length });
   } catch (e) {
     return handleApiError(e);

@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
-import { useTdc } from "./store";
+import { useEffect, useLayoutEffect } from "react";
+import dynamic from "next/dynamic";
+import { useTdc, type SiteData } from "./store";
 import { Nav } from "./Nav";
 import { Hero } from "./Hero";
 import { Process, Services } from "./Sections";
@@ -10,14 +11,23 @@ import { Pricing } from "./Pricing";
 import { CaseVault } from "./CaseVault";
 import { Faq, TalkToUs, CtaBand } from "./Contact";
 import { Footer } from "./Footer";
-import { AuthModal } from "./modals/AuthModal";
-import { PortfolioModal } from "./modals/PortfolioModal";
-import { PolicyModal } from "./modals/PolicyModal";
-import { AdminPanel } from "./modals/AdminPanel";
-import { LabDashboard } from "./modals/LabDashboard";
 
-export function TdcApp() {
+// Heavy panels are loaded in separate chunks, so they don't slow down the first paint for visitors.
+const AuthModal = dynamic(() => import("./modals/AuthModal").then((m) => m.AuthModal), { ssr: false });
+const PortfolioModal = dynamic(() => import("./modals/PortfolioModal").then((m) => m.PortfolioModal), { ssr: false });
+const PolicyModal = dynamic(() => import("./modals/PolicyModal").then((m) => m.PolicyModal), { ssr: false });
+const AdminPanel = dynamic(() => import("./modals/AdminPanel").then((m) => m.AdminPanel), { ssr: false });
+const LabDashboard = dynamic(() => import("./modals/LabDashboard").then((m) => m.LabDashboard), { ssr: false });
+
+const useIsoLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
+
+export function TdcApp({ initialSite }: { initialSite?: SiteData | null }) {
   const { lang, refreshSite, refreshUser, overlay } = useTdc();
+
+  // Content comes with the page itself (server-rendered + cached): show it before the first paint.
+  useIsoLayoutEffect(() => {
+    if (initialSite) useTdc.setState({ site: initialSite, loadingSite: false });
+  }, [initialSite]);
 
   // Initial load
   useEffect(() => {
@@ -25,9 +35,9 @@ export function TdcApp() {
     if (saved === "en" || saved === "fa") {
       useTdc.getState().setLang(saved);
     }
-    refreshSite();
+    if (!initialSite) refreshSite(); // only needed when the server could not provide the content
     refreshUser();
-  }, [refreshSite, refreshUser]);
+  }, [refreshSite, refreshUser, initialSite]);
 
   // Keep <html> dir/lang in sync
   useEffect(() => {

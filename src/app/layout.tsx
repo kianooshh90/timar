@@ -1,7 +1,13 @@
 import type { Metadata, Viewport } from "next";
+import { Vazirmatn, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
+
+// Fonts are downloaded at build time and served from our own domain (no blocking request to Google Fonts,
+// which is slow or blocked for many visitors in Iran).
+const vazirmatn = Vazirmatn({ subsets: ["arabic", "latin"], display: "swap", variable: "--font-vazirmatn" });
+const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], display: "swap", variable: "--font-space-grotesk" });
 
 export const metadata: Metadata = {
   title: "TDC | تیمار دنتال سنتر — طراحی CAD دندانپزشکی",
@@ -39,16 +45,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fa" dir="rtl" suppressHydrationWarning>
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
-        <link
-          href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap"
-          rel="stylesheet"
-        />
-      </head>
+    <html lang="fa" dir="rtl" className={`${vazirmatn.variable} ${spaceGrotesk.variable}`} suppressHydrationWarning>
       <body className="antialiased bg-background text-foreground">
         {children}
         <Toaster />

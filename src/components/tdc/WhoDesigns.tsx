@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { Check, X, MoveHorizontal, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -46,6 +47,9 @@ export function WhoDesigns() {
       ? "طراحی هر کیس توسط *متخصصان باتجربه CAD* انجام می‌شود."
       : "Case design led by *experienced dental CAD specialists*.");
   const whoImage = s?.whoImage || DEFAULT_WHO_IMAGE;
+  // next/image only accepts local files and our Supabase public bucket; anything else falls back to a plain <img>
+  const canOptimize =
+    whoImage.startsWith("/") || /^https:\/\/[^/]+\.supabase\.co\/storage\/v1\/object\/public\//.test(whoImage);
   const compareHeight = Math.max(340, 110 + Math.max(left.length, right.length) * 64);
 
   const updateFromClientX = useCallback((clientX: number) => {
@@ -106,13 +110,24 @@ export function WhoDesigns() {
             {st(s, "whoDesigns", lang)}
           </motion.p>
           <div className="mt-8 overflow-hidden rounded-3xl border border-white/10">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={whoImage}
-              alt={title.replace(/\*/g, "")}
-              loading="lazy"
-              className="h-auto w-full object-cover transition-transform duration-700 hover:scale-105"
-            />
+            {canOptimize ? (
+              <Image
+                src={whoImage}
+                alt={title.replace(/\*/g, "")}
+                width={720}
+                height={540}
+                sizes="(min-width: 1024px) 540px, 100vw"
+                className="h-auto w-full object-cover transition-transform duration-700 hover:scale-105"
+              />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={whoImage}
+                alt={title.replace(/\*/g, "")}
+                loading="lazy"
+                className="h-auto w-full object-cover transition-transform duration-700 hover:scale-105"
+              />
+            )}
           </div>
         </div>
 
