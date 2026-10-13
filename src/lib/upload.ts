@@ -2,7 +2,8 @@ import path from "path";
 import crypto from "crypto";
 import { supabaseAdmin, PUBLIC_BUCKET, PRIVATE_BUCKET } from "@/lib/supabase";
 
-export const MAX_FILE_SIZE = 200 * 1024 * 1024; // 200MB
+// Per-file limit. Supabase free plan = 50MB; raise via NEXT_PUBLIC_MAX_UPLOAD_MB after upgrading.
+export const MAX_FILE_SIZE = (Number(process.env.NEXT_PUBLIC_MAX_UPLOAD_MB) || 50) * 1024 * 1024;
 
 const EXT_WHITELIST = new Set([
   // images
