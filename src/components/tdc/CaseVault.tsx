@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Download, Eye, FolderOpen } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { useTdc, parseJson, parseImageUrls, st, type PortfolioItem } from "./store";
+import { useTdc, parseJson, parseImageUrls, st, isLinkFile, type PortfolioItem, type SavedFile } from "./store";
 import { t, UI, VAULT_FILTERS } from "./i18n";
 import { SectionHead } from "./SectionHead";
 
@@ -83,7 +83,7 @@ export function CaseVault() {
 function VaultCard({ item }: { item: PortfolioItem }) {
   const { lang, openOverlay } = useTdc();
   const images = parseImageUrls(item.images);
-  const files = parseJson<{ path: string; name: string; size: number }[]>(item.files, []);
+  const files = parseJson<SavedFile[]>(item.files, []);
   const title = lang === "fa" ? item.title : item.titleEn || item.title;
   const desc = lang === "fa" ? item.description : item.descriptionEn || item.description;
   const img = images[0] || "/images/portfolio/zirconia-crowns.png";
@@ -138,11 +138,15 @@ function VaultCard({ item }: { item: PortfolioItem }) {
               size="sm"
               className="h-8 shrink-0 rounded-full bg-orange-500/90 px-3 text-xs font-bold text-white hover:bg-orange-400"
               onClick={() => {
+                if (isLinkFile(files[0])) {
+                  window.open(files[0].path, "_blank", "noopener,noreferrer");
+                  return;
+                }
                 window.location.href = `/api/download?p=${encodeURIComponent(files[0].path)}&name=${encodeURIComponent(files[0].name)}&item=${item.id}`;
               }}
             >
               <Download className="me-1 h-3.5 w-3.5" />
-              {lang === "fa" ? "دانلود" : "Download"}
+              {isLinkFile(files[0]) ? (lang === "fa" ? "باز کردن لینک" : "Open link") : lang === "fa" ? "دانلود" : "Download"}
             </Button>
           </div>
         ) : (

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
+import { sanitizeFiles } from "@/lib/files";
 import { handleApiError, jsonError } from "@/lib/api";
 import crypto from "crypto";
 
@@ -23,7 +24,7 @@ export async function POST(req: NextRequest) {
         toothNumbers: toothNumbers ? String(toothNumbers).trim() : null,
         serviceType: String(serviceType),
         notes: notes ? String(notes).trim() : null,
-        files: JSON.stringify(Array.isArray(files) ? files : []),
+        files: JSON.stringify(sanitizeFiles(files)),
       },
     });
     return NextResponse.json({ ok: true, case: kase });

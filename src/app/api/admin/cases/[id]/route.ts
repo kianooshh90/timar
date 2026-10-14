@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
+import { sanitizeFiles } from "@/lib/files";
 import { handleApiError, jsonError } from "@/lib/api";
 
 const STATUSES = ["RECEIVED", "IN_DESIGN", "QC", "DELIVERED", "CANCELLED"];
@@ -20,7 +21,7 @@ export async function PATCH(
     }
     if (body.adminNote !== undefined) data.adminNote = String(body.adminNote).trim() || null;
     if (body.price !== undefined) data.price = body.price === null ? null : Number(body.price);
-    if (body.deliveryFiles !== undefined) data.deliveryFiles = JSON.stringify(body.deliveryFiles);
+    if (body.deliveryFiles !== undefined) data.deliveryFiles = JSON.stringify(sanitizeFiles(body.deliveryFiles));
     const kase = await db.case.update({ where: { id }, data });
     return NextResponse.json({ ok: true, case: kase });
   } catch (e) {

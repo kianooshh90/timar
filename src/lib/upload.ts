@@ -76,8 +76,18 @@ export async function createSignedUpload(kind: string, originalName: string): Pr
  * - Legacy local "/uploads/..." or "/samples/..." paths (pre-migration data): resolved as static
  *   files served from /public, since old seed/sample files still ship in the repo.
  */
+function isOurPublicUrl(p: string): boolean {
+  try {
+    const u = new URL(p);
+    const own = process.env.NEXT_PUBLIC_SUPABASE_URL ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname : "";
+    return u.protocol === "https:" && !!own && u.hostname === own && u.pathname.startsWith("/storage/v1/object/public/");
+  } catch {
+    return false;
+  }
+}
+
 export async function resolveDownloadUrl(p: string, downloadName?: string): Promise<string | null> {
-  if (/^https?:\/\//.test(p)) return p;
+  if (/^https?:\/\//.test(p)) return isOurPublicUrl(p) ? p : null; // never redirect to arbitrary sites
   if (p.startsWith("/samples/") || p.startsWith("/images/")) return p; // static repo assets
 
   const m = p.match(/^([a-zA-Z0-9_-]+):(.+)$/);

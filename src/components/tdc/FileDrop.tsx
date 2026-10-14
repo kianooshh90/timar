@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { UploadCloud, File as FileIcon, X, CheckCircle2, Loader2 } from "lucide-react";
+import { UploadCloud, File as FileIcon, X, CheckCircle2, Loader2, Link2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useTdc, type SavedFile, type Lang } from "./store";
+import { Input } from "@/components/ui/input";
+import { useTdc, isLinkFile, linkHost, type SavedFile, type Lang } from "./store";
 import { fmtBytes } from "./i18n";
 
 interface FileDropProps {
@@ -13,6 +14,24 @@ interface FileDropProps {
   accept?: string;
   multiple?: boolean;
   compact?: boolean;
+  /** Let the user add an external link (Google Drive, Telegram...) instead of uploading. Default: on, except for images. */
+  allowLink?: boolean;
+}
+
+/** Accepts "drive.google.com/..." or "https://..."; only public https links are allowed. */
+function parseHttpsUrl(input: string): URL | null {
+  let raw = input.trim();
+  if (!raw || raw.length > 2000 || /\s/.test(raw)) return null;
+  if (!/^[a-z][a-z0-9+.-]*:/i.test(raw)) raw = "https://" + raw;
+  try {
+    const u = new URL(raw);
+    if (u.protocol !== "https:" || u.username || u.password) return null;
+    if (!u.hostname.includes(".") || u.hostname.includes(":") || u.hostname.includes("[")) return null;
+    if (/^\d+\.\d+\.\d+\.\d+$/.test(u.hostname)) return null;
+    return u;
+  } catch {
+    return null;
+  }
 }
 
 /** Max size per file. Supabase's free plan allows 50MB; set NEXT_PUBLIC_MAX_UPLOAD_MB on Vercel after upgrading. */
@@ -112,13 +131,13 @@ function errorText(code: string, fa: boolean): string {
   switch (code) {
     case "TOO_LARGE":
       return fa
-        ? `حجم فایل بیشتر از حد مجاز (${MAX_MB} مگابایت) است. فایل را زیپ یا فشرده کنید.`
-        : `File is larger than the ${MAX_MB}MB limit. Please zip or compress it.`;
+        ? `حجم فایل بیشتر از حد مجاز (${MAX_MB} مگابایت) است. آن را زیپ کنید یا به‌جای آپلود، لینکش را اضافه کنید.`
+        : `File is larger than the ${MAX_MB}MB limit. Zip it, or add a link instead of uploading.`;
     case "NETWORK":
     case "STALLED":
       return fa
-        ? "اتصال اینترنت قطع یا خیلی کند شد (۳ بار تلاش شد). دوباره امتحان کنید."
-        : "Connection dropped or stalled (tried 3 times). Please try again.";
+        ? "اتصال اینترنت قطع یا خیلی کند شد (۳ بار تلاش شد). دوباره امتحان کنید یا لینک فایل را اضافه کنید."
+        : "Connection dropped or stalled (tried 3 times). Try again, or add a link to the file instead.";
     case "UNAUTHORIZED":
       return fa ? "نشست شما تمام شده است؛ دوباره وارد شوید." : "Your session expired; please sign in again.";
     default:
@@ -128,7 +147,7 @@ function errorText(code: string, fa: boolean): string {
 
 type Job = { pct: number; status: "up" | "done" | "err"; name: string; size: number; retry: number; msg?: string };
 
-export function FileDrop({ kind, value, onChange, accept, multiple = true, compact = false }: FileDropProps) {
+export function FileDrop({ kind, value, onChange, accept, multiple = true, compact = false, allowLink }: FileDropProps) {
   const lang = useTdc((s) => s.lang);
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
@@ -140,6 +159,29 @@ export function FileDrop({ kind, value, onChange, accept, multiple = true, compa
   valueRef.current = value;
 
   const fa = lang === "fa";
+
+  // --- "add a link instead of uploading" ---
+  const linksEnabled = allowLink ?? kind !== "portfolio-image";
+  const [showLink, setShowLink] = useState(false);
+  const [linkUrl, setLinkUrl] = useState("");
+  const [linkNote, setLinkNote] = useState("");
+  const [linkErr, setLinkErr] = useState("");
+
+  const addLink = () => {
+    const u = parseHttpsUrl(linkUrl);
+    if (!u) {
+      setLinkErr(fa ? "لینک معتبر نیست. باید یک آدرس https مثل لینک Google Drive یا تلگرام باشد." : "Invalid link. It must be an https address, e.g. a Google Drive or Telegram link.");
+      return;
+    }
+    const entry: SavedFile = { path: u.href, name: linkNote.trim() || linkHost(u.href), size: 0, link: true };
+    const next = [...(multiple ? valueRef.current : []), entry];
+    valueRef.current = next;
+    onChange(next);
+    setLinkUrl("");
+    setLinkNote("");
+    setLinkErr("");
+    setShowLink(false);
+  };
 
   const patchJob = (key: string, patch: Partial<Job>) =>
     setJobs((j) => (j[key] ? { ...j, [key]: { ...j[key], ...patch } } : j));
@@ -239,6 +281,84 @@ export function FileDrop({ kind, value, onChange, accept, multiple = true, compa
         </p>
       </div>
 
+      {linksEnabled && (
+        <div>
+          {!showLink ? (
+            <button
+              type="button"
+              onClick={() => setShowLink(true)}
+              className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white/60 transition hover:border-teal-400/40 hover:text-teal-300"
+            >
+              <Link2 className="h-3.5 w-3.5 shrink-0" />
+              {fa
+                ? "فایل خیلی بزرگ است یا آپلود کند است؟ به‌جای آپلود، لینک فایل را اضافه کنید"
+                : "File too large or upload too slow? Add a link instead"}
+            </button>
+          ) : (
+            <div className="space-y-2 rounded-xl border border-teal-400/25 bg-teal-500/[0.05] p-3">
+              <p className="text-[11px] leading-5 text-white/60">
+                {fa
+                  ? "فایل را در Google Drive، تلگرام، WeTransfer، Dropbox و... بگذارید و لینکش را اینجا بچسبانید. دسترسی لینک باید روی «هر کسی که لینک را دارد» باشد."
+                  : "Put the file on Google Drive, Telegram, WeTransfer, Dropbox, etc. and paste its link here. Link access must be set to “anyone with the link”."}
+              </p>
+              <Input
+                dir="ltr"
+                value={linkUrl}
+                onChange={(e) => {
+                  setLinkUrl(e.target.value);
+                  setLinkErr("");
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addLink();
+                  }
+                }}
+                placeholder="https://drive.google.com/..."
+                className="h-9 rounded-lg border-white/15 bg-white/5 text-xs text-white"
+              />
+              <Input
+                value={linkNote}
+                maxLength={120}
+                onChange={(e) => setLinkNote(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addLink();
+                  }
+                }}
+                placeholder={fa ? "توضیح یا رمز فایل (اختیاری)" : "Note or file password (optional)"}
+                className="h-9 rounded-lg border-white/15 bg-white/5 text-xs text-white"
+              />
+              {linkErr && <p className="text-[11px] text-red-300">{linkErr}</p>}
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={addLink}
+                  className="h-8 rounded-full bg-teal-500 text-xs font-bold text-white hover:bg-teal-400"
+                >
+                  <Link2 className="me-1 h-3.5 w-3.5" />
+                  {fa ? "افزودن لینک" : "Add link"}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setShowLink(false);
+                    setLinkErr("");
+                  }}
+                  className="h-8 text-xs text-white/50 hover:text-white"
+                >
+                  {fa ? "انصراف" : "Cancel"}
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {Object.entries(jobs).map(([key, job]) => (
         <div key={key} className="rounded-lg bg-white/5 px-3 py-2 text-xs">
           <div className="flex items-center gap-2">
@@ -271,7 +391,18 @@ export function FileDrop({ kind, value, onChange, accept, multiple = true, compa
           {job.status === "err" && (
             <div className="mt-2 space-y-2">
               <p className="text-[11px] leading-5 text-red-300/90">{job.msg}</p>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
+                {linksEnabled && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="h-7 bg-teal-500 text-xs font-bold text-white hover:bg-teal-400"
+                    onClick={() => setShowLink(true)}
+                  >
+                    <Link2 className="me-1 h-3 w-3" />
+                    {fa ? "افزودن به‌صورت لینک" : "Add as link"}
+                  </Button>
+                )}
                 {filesRef.current[key] && job.size <= MAX_BYTES && (
                   <Button type="button" size="sm" variant="outline" className="h-7 border-white/20 bg-white/5 text-xs text-white hover:bg-white/10" onClick={() => runJob(key)}>
                     {fa ? "تلاش مجدد" : "Retry"}
@@ -306,10 +437,16 @@ export function FileDrop({ kind, value, onChange, accept, multiple = true, compa
               key={`${f.path}-${i}`}
               className="flex items-center gap-2 rounded-lg bg-white/[0.04] border border-white/10 px-3 py-2"
             >
-              <FileIcon className="w-4 h-4 text-orange-400 shrink-0" />
+              {isLinkFile(f) ? (
+                <Link2 className="w-4 h-4 text-teal-400 shrink-0" />
+              ) : (
+                <FileIcon className="w-4 h-4 text-orange-400 shrink-0" />
+              )}
               <div className="flex-1 min-w-0">
-                <p className="text-xs truncate text-white/85" dir="ltr">{f.name}</p>
-                <p className="text-[10px] text-white/40">{fmtBytes(f.size, lang)}</p>
+                <p className="text-xs truncate text-white/85" dir={isLinkFile(f) ? "auto" : "ltr"}>{f.name}</p>
+                <p className="text-[10px] text-white/40" dir="ltr">
+                  {isLinkFile(f) ? `${fa ? "لینک" : "Link"} · ${linkHost(f.path)}` : fmtBytes(f.size, lang)}
+                </p>
               </div>
               <Button
                 type="button"

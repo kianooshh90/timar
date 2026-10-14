@@ -5,9 +5,23 @@ import { create } from "zustand";
 export type Lang = "fa" | "en";
 
 export interface SavedFile {
-  path: string;
-  name: string;
-  size: number;
+  path: string; // storage reference / public URL — or, for external links, the https URL itself
+  name: string; // original filename, or the note typed by the user for a link
+  size: number; // 0 for links
+  link?: boolean; // true = external link (Google Drive, Telegram, WeTransfer...), not a file stored by us
+}
+
+/** External links are only ever rendered when they are plain https URLs. */
+export function isLinkFile(f: { path: string; link?: boolean }): boolean {
+  return f.link === true && /^https:\/\//i.test(f.path);
+}
+
+export function linkHost(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
 }
 
 export interface ServiceItem {

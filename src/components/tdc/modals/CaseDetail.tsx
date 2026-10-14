@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Save, Loader2, PackageCheck, Send } from "lucide-react";
+import { Save, Loader2, PackageCheck, Send, ExternalLink } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useTdc, type CaseItem, type SavedFile } from "../store";
+import { useTdc, isLinkFile, linkHost, type CaseItem, type SavedFile, type Lang } from "../store";
 import { t, UI, CATEGORIES, fmtDate, fmtBytes } from "../i18n";
 import { FileDrop } from "../FileDrop";
 import { toast } from "sonner";
@@ -18,6 +18,39 @@ export function parseSafe(json?: string): SavedFile[] {
   } catch {
     return [];
   }
+}
+
+/** One downloadable entry: either a file we store (goes through /api/download) or an external link (opens in a new tab). */
+function FileRow({ f, lang, tone }: { f: SavedFile; lang: Lang; tone: "case" | "delivery" }) {
+  const cls =
+    tone === "case"
+      ? "bg-white/5 text-white/80 hover:text-orange-300"
+      : "bg-teal-500/10 text-teal-200 hover:text-teal-100";
+  if (isLinkFile(f)) {
+    return (
+      <a
+        href={f.path}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs transition ${cls}`}
+      >
+        <ExternalLink className="h-3.5 w-3.5 text-teal-400" />
+        <span className="flex-1 truncate" dir="auto">{f.name}</span>
+        <span className="text-white/35" dir="ltr">{linkHost(f.path)}</span>
+      </a>
+    );
+  }
+  return (
+    <a
+      href={`/api/download?p=${encodeURIComponent(f.path)}&name=${encodeURIComponent(f.name)}`}
+      download
+      className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs transition ${cls}`}
+    >
+      <PackageCheck className={`h-3.5 w-3.5 ${tone === "case" ? "text-teal-400" : ""}`} />
+      <span className="flex-1 truncate" dir="ltr">{f.name}</span>
+      <span className="text-white/35">{fmtBytes(f.size, lang)}</span>
+    </a>
+  );
 }
 
 function Info({ label, value }: { label: string; value: string }) {
@@ -154,15 +187,7 @@ function CaseDetailInner({
               <ul className="mt-2 space-y-1.5">
                 {caseFiles.map((f, i) => (
                   <li key={i}>
-                    <a
-                      href={`/api/download?p=${encodeURIComponent(f.path)}&name=${encodeURIComponent(f.name)}`}
-                      download
-                      className="flex items-center gap-2 rounded-lg bg-white/5 px-3 py-2 text-xs text-white/80 transition hover:text-orange-300"
-                    >
-                      <PackageCheck className="h-3.5 w-3.5 text-teal-400" />
-                      <span className="flex-1 truncate" dir="ltr">{f.name}</span>
-                      <span className="text-white/35">{fmtBytes(f.size, lang)}</span>
-                    </a>
+                    <FileRow f={f} lang={lang} tone="case" />
                   </li>
                 ))}
               </ul>
@@ -195,15 +220,7 @@ function CaseDetailInner({
                 <ul className="mt-2 space-y-1.5">
                   {parseSafe(detail?.deliveryFiles).map((f, i) => (
                     <li key={i}>
-                      <a
-                        href={`/api/download?p=${encodeURIComponent(f.path)}&name=${encodeURIComponent(f.name)}`}
-                        download
-                        className="flex items-center gap-2 rounded-lg bg-teal-500/10 px-3 py-2 text-xs text-teal-200 transition hover:text-teal-100"
-                      >
-                        <PackageCheck className="h-3.5 w-3.5" />
-                        <span className="flex-1 truncate" dir="ltr">{f.name}</span>
-                        <span className="text-white/35">{fmtBytes(f.size, lang)}</span>
-                      </a>
+                      <FileRow f={f} lang={lang} tone="delivery" />
                     </li>
                   ))}
                 </ul>

@@ -5,7 +5,7 @@ import { Download, FileDown, FolderOpen, ArrowLeft } from "lucide-react";
 import Image from "next/image";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { useTdc, parseJson, parseImageUrls } from "../store";
+import { useTdc, parseJson, parseImageUrls, isLinkFile, linkHost, type SavedFile } from "../store";
 import { t, UI, fmtBytes } from "../i18n";
 
 export function PortfolioModal() {
@@ -27,7 +27,7 @@ export function PortfolioModal() {
   }
 
   const images = parseImageUrls(item.images);
-  const files = parseJson<{ path: string; name: string; size: number }[]>(item.files, []);
+  const files = parseJson<SavedFile[]>(item.files, []);
   const title = lang === "fa" ? item.title : item.titleEn || item.title;
   const desc = lang === "fa" ? item.description : item.descriptionEn || item.description;
 
@@ -92,18 +92,24 @@ export function PortfolioModal() {
                     className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3"
                   >
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold" dir="ltr">{f.name}</p>
-                      <p className="text-[11px] text-white/40">{fmtBytes(f.size, lang)}</p>
+                      <p className="truncate text-sm font-semibold" dir={isLinkFile(f) ? "auto" : "ltr"}>{f.name}</p>
+                      <p className="text-[11px] text-white/40" dir="ltr">
+                        {isLinkFile(f) ? linkHost(f.path) : fmtBytes(f.size, lang)}
+                      </p>
                     </div>
                     <Button
                       size="sm"
                       className="shrink-0 rounded-full bg-gradient-to-l from-orange-600 to-orange-500 px-4 font-bold text-white hover:brightness-110"
                       onClick={() => {
+                        if (isLinkFile(f)) {
+                          window.open(f.path, "_blank", "noopener,noreferrer");
+                          return;
+                        }
                         window.location.href = `/api/download?p=${encodeURIComponent(f.path)}&name=${encodeURIComponent(f.name)}&item=${item.id}`;
                       }}
                     >
                       <FileDown className="me-1 h-4 w-4" />
-                      {lang === "fa" ? "دانلود" : "Download"}
+                      {isLinkFile(f) ? (lang === "fa" ? "باز کردن لینک" : "Open link") : lang === "fa" ? "دانلود" : "Download"}
                     </Button>
                   </li>
                 ))}
