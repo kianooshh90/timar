@@ -56,7 +56,8 @@ export interface UserInfo {
   id: string;
   email: string;
   name: string;
-  role: "ADMIN" | "LAB";
+  role: "ADMIN" | "LAB" | "DESIGNER";
+  username?: string | null;
   labName?: string | null;
   phone?: string | null;
   city?: string | null;
@@ -89,6 +90,55 @@ export interface CaseItem {
   updatedAt: string;
   messages?: CaseMessageItem[];
   user?: { name: string; labName?: string | null; email: string; phone?: string | null };
+  // --- designer workflow (internal fields are only sent to the admin / the assigned designer) ---
+  designerId?: string | null;
+  designer?: { id: string; name: string; username?: string | null } | null;
+  assignedAt?: string | null;
+  dueAt?: string | null;
+  designerNote?: string | null;
+  submittedAt?: string | null;
+  deliveredAt?: string | null;
+  revisionCount?: number;
+  rating?: number | null; // lab satisfaction 1..5
+  ratingComment?: string | null;
+  score?: number | null; // admin's score for the designer
+  scoreNote?: string | null;
+  events?: CaseEventItem[];
+}
+
+export interface CaseEventItem {
+  id: string;
+  caseId: string;
+  type: string;
+  note?: string | null;
+  actorRole?: string | null;
+  actorName?: string | null;
+  createdAt: string;
+}
+
+export interface DesignerStats {
+  open: number;
+  inDesign: number;
+  inReview: number;
+  delivered: number;
+  overdue: number;
+  avgScore: number | null;
+  scoredCount: number;
+  avgRevisions: number | null;
+  avgRating: number | null;
+  ratedCount: number;
+  onTimeRate: number | null;
+  avgTurnaroundHours: number | null;
+}
+
+export interface DesignerItem {
+  id: string;
+  name: string;
+  username: string | null;
+  phone?: string | null;
+  active: boolean;
+  createdAt: string;
+  stats: DesignerStats;
 }
 
 export interface InquiryItem {
@@ -113,7 +163,15 @@ export type OverlayView =
   | { type: "portfolio"; itemId: string }
   | { type: "policy"; tab?: "terms" | "privacy" | "refund" }
   | { type: "admin"; tab?: string }
+  | { type: "designer"; tab?: string }
   | { type: "lab"; tab?: string };
+
+/** The panel a signed-in user should land on. `newCase` = they clicked a "send a case" button. */
+export function panelFor(user: { role: string }, newCase = false): OverlayView {
+  if (user.role === "ADMIN") return newCase ? { type: "admin", tab: "cases" } : { type: "admin" };
+  if (user.role === "DESIGNER") return { type: "designer" };
+  return newCase ? { type: "lab", tab: "newCase" } : { type: "lab" };
+}
 
 interface TdcState {
   lang: Lang;

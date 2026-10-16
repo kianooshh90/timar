@@ -9,17 +9,56 @@ const SECRET = new TextEncoder().encode(
 const COOKIE_NAME = "tdc_token";
 const MAX_AGE = 60 * 60 * 24 * 7; // 7 days
 
+export type Role = "ADMIN" | "LAB" | "DESIGNER";
+
 export interface SessionUser {
   id: string;
   email: string;
   name: string;
-  role: "ADMIN" | "LAB";
+  role: Role;
+  username?: string | null;
   labName?: string | null;
   phone?: string | null;
   city?: string | null;
   points: number;
   referralCode?: string | null;
 }
+
+/** The user fields that are safe to send to the browser (never includes the password hash). */
+export function publicUser(user: {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  username?: string | null;
+  labName?: string | null;
+  phone?: string | null;
+  city?: string | null;
+  points: number;
+  referralCode?: string | null;
+}): SessionUser {
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role as Role,
+    username: user.username ?? null,
+    labName: user.labName ?? null,
+    phone: user.phone ?? null,
+    city: user.city ?? null,
+    points: user.points,
+    referralCode: user.referralCode ?? null,
+  };
+}
+
+/** Designer usernames: 3-30 chars, lowercase letters, digits, dot, dash, underscore (no "@", so they never clash with e-mails). */
+export function normalizeUsername(input: unknown): string | null {
+  const u = String(input ?? "").trim().toLowerCase();
+  return /^[a-z0-9._-]{3,30}$/.test(u) ? u : null;
+}
+
+/** Internal e-mail used for designer accounts (the User table requires a unique e-mail). */
+export const DESIGNER_EMAIL_DOMAIN = "designers.tdc.local";
 
 export async function hashPassword(pw: string) {
   return bcrypt.hash(pw, 10);
@@ -58,18 +97,8 @@ export async function getSessionUser(): Promise<SessionUser | null> {
     const userId = payload.sub;
     if (!userId) return null;
     const user = await db.user.findUnique({ where: { id: userId } });
-    if (!user) return null;
-    return {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role as "ADMIN" | "LAB",
-      labName: user.labName,
-      phone: user.phone,
-      city: user.city,
-      points: user.points,
-      referralCode: user.referralCode,
-    };
+    if (!user || !user.active) return null; // disabled accounts lose access immediately
+    return publicUser(user);
   } catch {
     return null;
   }
@@ -85,6 +114,13 @@ export async function requireAdmin(): Promise<SessionUser> {
   const user = await getSessionUser();
   if (!user) throw new AuthError("UNAUTHORIZED", 401);
   if (user.role !== "ADMIN") throw new AuthError("FORBIDDEN", 403);
+  return user;
+}
+
+export async function requireDesigner(): Promise<SessionUser> {
+  const user = await getSessionUser();
+  if (!user) throw new AuthError("UNAUTHORIZED", 401);
+  if (user.role !== "DESIGNER") throw new AuthError("FORBIDDEN", 403);
   return user;
 }
 

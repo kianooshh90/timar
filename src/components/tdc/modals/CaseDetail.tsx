@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label";
 import { useTdc, isLinkFile, linkHost, type CaseItem, type SavedFile, type Lang } from "../store";
 import { t, UI, CATEGORIES, fmtDate, fmtBytes } from "../i18n";
 import { FileDrop } from "../FileDrop";
+import { AdminWorkflowSection } from "./AdminWorkflow";
+import { LabFeedbackSection } from "./LabFeedback";
 import { toast } from "sonner";
 
 export function parseSafe(json?: string): SavedFile[] {
@@ -21,7 +23,7 @@ export function parseSafe(json?: string): SavedFile[] {
 }
 
 /** One downloadable entry: either a file we store (goes through /api/download) or an external link (opens in a new tab). */
-function FileRow({ f, lang, tone }: { f: SavedFile; lang: Lang; tone: "case" | "delivery" }) {
+export function FileRow({ f, lang, tone }: { f: SavedFile; lang: Lang; tone: "case" | "delivery" }) {
   const cls =
     tone === "case"
       ? "bg-white/5 text-white/80 hover:text-orange-300"
@@ -140,13 +142,18 @@ function CaseDetailInner({
 
   return (
     <Dialog open={!!kase} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-h-[88vh] overflow-y-auto thin-scroll border-white/10 bg-[#101318] text-white sm:max-w-lg">
+      <DialogContent className={`max-h-[88vh] overflow-y-auto thin-scroll border-white/10 bg-[#101318] text-white ${isAdmin ? "sm:max-w-2xl" : "sm:max-w-lg"}`}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 font-extrabold" dir="ltr">
             <span className="font-display text-orange-300">{kase.code}</span>
             <span className="text-xs font-normal text-white/40">
               {t(UI.status[detail?.status ?? "RECEIVED"], lang)}
             </span>
+            {(detail?.revisionCount ?? 0) > 0 && (
+              <span className="text-xs font-normal text-orange-300/80">
+                · {lang === "fa" ? "اصلاح" : "rev."} {detail?.revisionCount}
+              </span>
+            )}
           </DialogTitle>
         </DialogHeader>
 
@@ -179,6 +186,9 @@ function CaseDetailInner({
               </div>
             )}
           </div>
+
+          {/* Designer assignment, review, scoring and activity log (admin only) */}
+          {isAdmin && <AdminWorkflowSection caseId={kase.id} onChanged={refresh} />}
 
           {/* Case files */}
           {caseFiles.length > 0 && (
@@ -227,6 +237,9 @@ function CaseDetailInner({
               </div>
             )
           )}
+
+          {/* Satisfaction rating + change request (lab only, once delivered) */}
+          {!isAdmin && detail && <LabFeedbackSection kase={detail} onChanged={refresh} />}
 
           {/* Messages */}
           <div>

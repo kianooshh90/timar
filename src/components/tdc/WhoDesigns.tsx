@@ -5,7 +5,7 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import { Check, X, MoveHorizontal, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useTdc, st, parseJson } from "./store";
+import { useTdc, st, parseJson, panelFor } from "./store";
 import { t, UI } from "./i18n";
 
 const DEFAULT_WHO_IMAGE = "/images/site/abutment.png";
@@ -74,7 +74,7 @@ export function WhoDesigns() {
 
   const onCta = () => {
     if (!user) openOverlay({ type: "auth", tab: "register" });
-    else openOverlay({ type: user.role === "ADMIN" ? "admin" : "lab", tab: user.role === "ADMIN" ? "cases" : "newCase" });
+    else openOverlay(panelFor(user, true));
   };
 
   return (

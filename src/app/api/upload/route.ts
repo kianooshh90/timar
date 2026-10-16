@@ -26,7 +26,12 @@ export async function POST(req: NextRequest) {
 
     const user = await getSessionUser();
     if (!user) return jsonError("UNAUTHORIZED", 401);
-    if (cfg.adminOnly && user.role !== "ADMIN") return jsonError("FORBIDDEN", 403);
+    // portfolio files: admin only. Delivery files: admin or the designers. Case files: labs/admin (not designers).
+    const allowed =
+      user.role === "ADMIN" ||
+      (kind === "delivery-file" && user.role === "DESIGNER") ||
+      (!cfg.adminOnly && kind !== "delivery-file" && user.role !== "DESIGNER");
+    if (!allowed) return jsonError("FORBIDDEN", 403);
 
     const signed = await createSignedUpload(kind, name);
     return NextResponse.json(signed);

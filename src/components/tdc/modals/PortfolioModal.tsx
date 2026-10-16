@@ -5,7 +5,7 @@ import { Download, FileDown, FolderOpen, ArrowLeft } from "lucide-react";
 import Image from "next/image";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { useTdc, parseJson, parseImageUrls, isLinkFile, linkHost, type SavedFile } from "../store";
+import { useTdc, parseJson, parseImageUrls, isLinkFile, linkHost, type SavedFile, panelFor } from "../store";
 import { t, UI, fmtBytes } from "../i18n";
 
 export function PortfolioModal() {
@@ -34,7 +34,7 @@ export function PortfolioModal() {
   const onSendCase = () => {
     closeOverlay();
     if (!user) openOverlay({ type: "auth", tab: "register" });
-    else openOverlay({ type: user.role === "ADMIN" ? "admin" : "lab", tab: user.role === "ADMIN" ? "cases" : "newCase" });
+    else openOverlay(panelFor(user, true));
   };
 
   return (

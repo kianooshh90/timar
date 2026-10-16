@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { ArrowLeft, ArrowDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useTdc, st, parseJson } from "./store";
+import { useTdc, st, parseJson, panelFor } from "./store";
 import { t, UI } from "./i18n";
 
 export function Hero() {
@@ -20,7 +20,7 @@ export function Hero() {
   const onPrimary = () => {
     const user = useTdc.getState().user;
     if (!user) openOverlay({ type: "auth", tab: "register" });
-    else openOverlay({ type: user.role === "ADMIN" ? "admin" : "lab", tab: user.role === "ADMIN" ? "cases" : "newCase" });
+    else openOverlay(panelFor(user, true));
   };
 
   return (

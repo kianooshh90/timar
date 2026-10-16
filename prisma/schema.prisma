@@ -14,7 +14,9 @@ model User {
   email        String       @unique
   password     String // bcrypt hash
   name         String
-  role         String       @default("LAB") // ADMIN | LAB
+  role         String       @default("LAB") // ADMIN | LAB | DESIGNER
+  username     String?      @unique // designers log in with this (chosen by the admin)
+  active       Boolean      @default(true) // disabled accounts cannot log in
   labName      String?
   phone        String?
   city         String?
@@ -23,7 +25,8 @@ model User {
   referralCode String?      @unique
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
-  cases        Case[]
+  cases        Case[]       @relation("CaseLab") // cases submitted by this lab
+  designed     Case[]       @relation("CaseDesigner") // cases assigned to this designer
 }
 
 // ============ Portfolio (Case Vault) ============
@@ -69,7 +72,7 @@ model Case {
   id            String        @id @default(cuid())
   code          String        @unique // TDC-1042
   userId        String
-  user          User          @relation(fields: [userId], references: [id])
+  user          User          @relation("CaseLab", fields: [userId], references: [id])
   patientName   String?
   toothNumbers  String?
   serviceType   String // CROWN_BRIDGE | IMPLANT | REMOVABLE | FULL_ARCH | DSD
@@ -82,6 +85,40 @@ model Case {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   messages      CaseMessage[]
+
+  // --- designer workflow ---
+  designerId    String?
+  designer      User?         @relation("CaseDesigner", fields: [designerId], references: [id], onDelete: SetNull)
+  assignedAt    DateTime?
+  dueAt         DateTime? // deadline set by the admin when assigning
+  designerNote  String? // instructions from admin to designer
+  submittedAt   DateTime? // when the designer sent the work for review
+  deliveredAt   DateTime?
+  revisionCount Int           @default(0) // times the work was sent back (by admin or lab)
+  rating        Int? // lab / doctor satisfaction 1..5
+  ratingComment String?
+  ratedAt       DateTime?
+  score         Int? // admin's score for the designer on this case, 0..100
+  scoreNote     String?
+  scoredAt      DateTime?
+  events        CaseEvent[]
+
+  @@index([designerId])
+}
+
+/// Activity log of a case: assignment, submission, revisions, rating, score and internal notes
+model CaseEvent {
+  id        String   @id @default(cuid())
+  caseId    String
+  case      Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  type      String // ASSIGNED | UNASSIGNED | STARTED | SUBMITTED | REVISION | DELIVERED | RATED | SCORED | NOTE | STATUS
+  note      String?
+  actorId   String?
+  actorRole String? // ADMIN | DESIGNER | LAB
+  actorName String?
+  createdAt DateTime @default(now())
+
+  @@index([caseId])
 }
 
 model CaseMessage {

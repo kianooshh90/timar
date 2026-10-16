@@ -18,6 +18,7 @@ const PortfolioModal = dynamic(() => import("./modals/PortfolioModal").then((m) 
 const PolicyModal = dynamic(() => import("./modals/PolicyModal").then((m) => m.PolicyModal), { ssr: false });
 const AdminPanel = dynamic(() => import("./modals/AdminPanel").then((m) => m.AdminPanel), { ssr: false });
 const LabDashboard = dynamic(() => import("./modals/LabDashboard").then((m) => m.LabDashboard), { ssr: false });
+const DesignerDashboard = dynamic(() => import("./modals/DesignerDashboard").then((m) => m.DesignerDashboard), { ssr: false });
 
 const useIsoLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
@@ -76,6 +77,7 @@ export function TdcApp({ initialSite }: { initialSite?: SiteData | null }) {
       <PolicyModal />
       <AdminPanel />
       <LabDashboard />
+      <DesignerDashboard />
     </div>
   );
 }

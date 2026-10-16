@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   LayoutDashboard, FolderKanban, Images, Tags, Inbox, Type, Users, X,
-  Plus, Trash2, Pencil, Save, Loader2, RefreshCcw, MessageSquare, Send, PackageCheck,
+  Plus, Trash2, Pencil, Save, Loader2, RefreshCcw, MessageSquare, Send, PackageCheck, Palette, Building2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,9 @@ import { useTdc, type PortfolioItem, type ServiceItem, type CaseItem, type Inqui
 import { t, UI, CATEGORIES, fmtToman, fmtDate, fmtBytes } from "../i18n";
 import { FileDrop } from "../FileDrop";
 import { CaseDetailDialog, parseSafe } from "./CaseDetail";
+import { AdminDesigners } from "./AdminDesigners";
+import { AdminUsers } from "./AdminUsers";
+import { dueInfo } from "../case-events";
 import { toast } from "sonner";
 
 /* ================= Admin Panel (full-screen overlay) ================= */
@@ -62,6 +65,8 @@ export function AdminPanel() {
           {[
             { key: "dashboard", label: UI.admin.dashboard, icon: LayoutDashboard },
             { key: "cases", label: UI.admin.cases, icon: FolderKanban },
+            { key: "designers", label: { fa: "طراحان", en: "Designers" }, icon: Palette },
+            { key: "labs", label: { fa: "لابراتوارها", en: "Labs" }, icon: Building2 },
             { key: "portfolio", label: UI.admin.portfolio, icon: Images },
             { key: "services", label: UI.admin.services, icon: Tags },
             { key: "inquiries", label: UI.admin.inquiries, icon: Inbox },
@@ -82,6 +87,8 @@ export function AdminPanel() {
         <div className="min-h-0 flex-1 overflow-y-auto thin-scroll p-4 sm:p-6">
           <TabsContent value="dashboard"><AdminDashboard /></TabsContent>
           <TabsContent value="cases"><AdminCases /></TabsContent>
+          <TabsContent value="designers"><AdminDesigners /></TabsContent>
+          <TabsContent value="labs"><AdminUsers /></TabsContent>
           <TabsContent value="portfolio"><AdminPortfolio /></TabsContent>
           <TabsContent value="services"><AdminServices /></TabsContent>
           <TabsContent value="inquiries"><AdminInquiries /></TabsContent>
@@ -95,16 +102,20 @@ export function AdminPanel() {
 
 /* ---------- Dashboard ---------- */
 function AdminDashboard() {
-  const [stats, setStats] = useState<{ totalCases: number; byStatus: Record<string, number>; unreadInquiries: number; subscribers: number; portfolioItems: number; labs: number } | null>(null);
+  const [stats, setStats] = useState<{ totalCases: number; byStatus: Record<string, number>; unreadInquiries: number; subscribers: number; portfolioItems: number; labs: number; designers?: number; unassigned?: number; overdue?: number } | null>(null);
   useEffect(() => {
     fetch("/api/admin/stats").then((r) => r.json()).then((d) => setStats(d.stats)).catch(() => null);
   }, []);
   if (!stats) return <Spinner />;
   const cards = [
     { label: "کل کیس‌ها", en: "Total cases", value: stats.totalCases, cls: "text-orange-400" },
+    { label: "بدون طراح (نیاز به تخصیص)", en: "Unassigned", value: stats.unassigned ?? 0, cls: (stats.unassigned ?? 0) > 0 ? "text-amber-400" : "text-white" },
+    { label: "منتظر بازبینی شما", en: "Awaiting review", value: stats.byStatus.QC ?? 0, cls: "text-teal-300" },
+    { label: "دیرکرد", en: "Overdue", value: stats.overdue ?? 0, cls: (stats.overdue ?? 0) > 0 ? "text-red-400" : "text-white" },
     { label: "در صف", en: "Received", value: stats.byStatus.RECEIVED, cls: "text-amber-400" },
     { label: "در حال طراحی", en: "In design", value: stats.byStatus.IN_DESIGN, cls: "text-orange-300" },
     { label: "تحویل‌شده", en: "Delivered", value: stats.byStatus.DELIVERED, cls: "text-emerald-400" },
+    { label: "طراحان فعال", en: "Active designers", value: stats.designers ?? 0, cls: "text-sky-300" },
     { label: "لابراتوارها", en: "Labs", value: stats.labs, cls: "text-teal-300" },
     { label: "استعلام خوانده‌نشده", en: "Unread inquiries", value: stats.unreadInquiries, cls: "text-red-400" },
     { label: "مشترکین", en: "Subscribers", value: stats.subscribers, cls: "text-white" },
@@ -125,10 +136,25 @@ function AdminDashboard() {
 /* ---------- Cases ---------- */
 const STATUSES = ["RECEIVED", "IN_DESIGN", "QC", "DELIVERED", "CANCELLED"] as const;
 
+type CaseFilter = "all" | "unassigned" | "review" | "progress" | "overdue" | "done";
+
+const isOpenCase = (c: CaseItem) => c.status === "RECEIVED" || c.status === "IN_DESIGN" || c.status === "QC";
+const isOverdueCase = (c: CaseItem) => isOpenCase(c) && !!c.dueAt && new Date(c.dueAt).getTime() < Date.now();
+
+const CASE_FILTERS: { key: CaseFilter; fa: string; en: string; test: (c: CaseItem) => boolean }[] = [
+  { key: "all", fa: "همه", en: "All", test: () => true },
+  { key: "unassigned", fa: "بدون طراح", en: "Unassigned", test: (c) => isOpenCase(c) && !c.designerId },
+  { key: "review", fa: "منتظر بازبینی", en: "Awaiting review", test: (c) => c.status === "QC" },
+  { key: "progress", fa: "در جریان", en: "In progress", test: (c) => c.status === "RECEIVED" || c.status === "IN_DESIGN" },
+  { key: "overdue", fa: "دیرکرد", en: "Overdue", test: isOverdueCase },
+  { key: "done", fa: "تحویل‌شده", en: "Delivered", test: (c) => c.status === "DELIVERED" },
+];
+
 function AdminCases() {
   const { lang } = useTdc();
   const [cases, setCases] = useState<CaseItem[] | null>(null);
   const [openCase, setOpenCase] = useState<CaseItem | null>(null);
+  const [filter, setFilter] = useState<CaseFilter>("all");
 
   const load = useCallback(() => {
     fetch("/api/admin/cases").then((r) => r.json()).then((d) => setCases(d.cases ?? [])).catch(() => setCases([]));
@@ -138,9 +164,27 @@ function AdminCases() {
   if (!cases) return <Spinner />;
   if (cases.length === 0) return <Empty label={lang === "fa" ? "هنوز کیسی ثبت نشده" : "No cases yet"} />;
 
+  const active = CASE_FILTERS.find((f) => f.key === filter) ?? CASE_FILTERS[0];
+  const visible = cases.filter(active.test);
+
   return (
     <div className="space-y-3">
-      {cases.map((c) => (
+      <div className="flex flex-wrap gap-2">
+        {CASE_FILTERS.map((f) => (
+          <button
+            key={f.key}
+            onClick={() => setFilter(f.key)}
+            className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition ${
+              filter === f.key ? "bg-orange-500 text-white" : "bg-white/5 text-white/60 hover:bg-white/10"
+            }`}
+          >
+            {lang === "fa" ? f.fa : f.en}
+            <span className="ms-1.5 tabular-nums opacity-70">{cases.filter(f.test).length}</span>
+          </button>
+        ))}
+      </div>
+      {visible.length === 0 && <Empty label={lang === "fa" ? "موردی در این فیلتر نیست" : "Nothing in this filter"} />}
+      {visible.map((c) => (
         <CaseRow key={c.id} c={c} onChanged={load} onOpen={() => setOpenCase(c)} />
       ))}
       <CaseDetailDialog kase={openCase} onClose={() => setOpenCase(null)} onChanged={load} isAdmin />
@@ -178,6 +222,16 @@ function CaseRow({ c, onChanged, onOpen }: { c: CaseItem; onChanged: () => void;
       </div>
       <p className="text-xs text-white/50">{CATEGORIES[c.serviceType] ? (lang === "fa" ? CATEGORIES[c.serviceType].fa : CATEGORIES[c.serviceType].en) : c.serviceType}</p>
       <p className="text-[11px] text-white/35">{fmtDate(c.createdAt, lang)}</p>
+      {c.designer ? (
+        <span className="rounded-full bg-sky-500/15 px-3 py-1 text-[11px] font-bold text-sky-300">🎨 {c.designer.name}</span>
+      ) : isOpenCase(c) ? (
+        <span className="rounded-full bg-amber-500/15 px-3 py-1 text-[11px] font-bold text-amber-300">
+          {lang === "fa" ? "بدون طراح" : "Unassigned"}
+        </span>
+      ) : null}
+      {isOpenCase(c) && dueInfo(c.dueAt, lang)?.overdue && (
+        <span className="rounded-full bg-red-500/15 px-3 py-1 text-[11px] font-bold text-red-300">{dueInfo(c.dueAt, lang)?.text}</span>
+      )}
       <span className={`rounded-full px-3 py-1 text-[11px] font-bold ${statusColor[c.status]}`}>
         {t(UI.status[c.status], lang)}
       </span>
@@ -514,7 +568,13 @@ function AdminInquiries() {
             <p className="text-sm font-bold text-white">{q.name}</p>
             <a href={`mailto:${q.email}`} className="text-xs text-orange-300" dir="ltr">{q.email}</a>
             {q.phone && <span className="text-xs text-white/40 tabular-nums" dir="ltr">{q.phone}</span>}
-            <span className="rounded-full bg-white/5 px-2.5 py-0.5 text-[10px] text-white/50">{t(UI.contact.topics[q.topic as keyof typeof UI.contact.topics] ?? UI.contact.topics.OTHER, lang)}</span>
+            {q.topic === "PASSWORD_RESET" ? (
+              <span className="rounded-full bg-amber-500/20 px-2.5 py-0.5 text-[10px] font-bold text-amber-300">
+                {lang === "fa" ? "بازیابی رمز — از تب «لابراتوارها» رمز موقت بدهید" : "Password reset — set a temp password in the Labs tab"}
+              </span>
+            ) : (
+              <span className="rounded-full bg-white/5 px-2.5 py-0.5 text-[10px] text-white/50">{t(UI.contact.topics[q.topic as keyof typeof UI.contact.topics] ?? UI.contact.topics.OTHER, lang)}</span>
+            )}
             <span className="text-[10px] text-white/30">{fmtDate(q.createdAt, lang)}</span>
             <div className="ms-auto flex gap-1">
               {!q.read && (

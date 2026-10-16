@@ -9,9 +9,9 @@ export function handleApiError(e: unknown) {
   if (e instanceof AuthError) {
     return jsonError(e.message, e.status);
   }
-  const msg = e instanceof Error ? e.message : "SERVER_ERROR";
+  // Details go to the server log only; never expose database/internal messages to the browser.
   console.error("[API]", e);
-  return jsonError(msg, 500);
+  return jsonError("SERVER_ERROR", 500);
 }
 
 export function formatToman(value: number): string {

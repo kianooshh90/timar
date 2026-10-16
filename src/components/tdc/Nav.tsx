@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Menu, X, Globe, LayoutDashboard, LogIn, LogOut, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useTdc, st } from "./store";
+import { useTdc, st, panelFor } from "./store";
 import { Logo } from "./Logo";
 import { t, UI } from "./i18n";
 import {
@@ -51,10 +51,8 @@ export function Nav() {
   const onSendCase = () => {
     if (!user) {
       openOverlay({ type: "auth", tab: "register" });
-    } else if (user.role === "ADMIN") {
-      openOverlay({ type: "admin", tab: "cases" });
     } else {
-      openOverlay({ type: "lab", tab: "newCase" });
+      openOverlay(panelFor(user, true));
     }
   };
 
@@ -122,7 +120,7 @@ export function Nav() {
                     size="sm"
                     variant="ghost"
                     className="hidden gap-1.5 text-white/80 hover:text-white sm:inline-flex"
-                    onClick={() => openOverlay({ type: user.role === "ADMIN" ? "admin" : "lab" })}
+                    onClick={() => openOverlay(panelFor(user))}
                   >
                     <LayoutDashboard className="h-4 w-4 text-orange-400" />
                     {t(user.role === "ADMIN" ? UI.nav.panel : UI.nav.dashboard, lang)}
@@ -191,7 +189,7 @@ export function Nav() {
                     <Button
                       size="sm"
                       className="flex-1 bg-white/10 text-white hover:bg-white/15"
-                      onClick={() => openOverlay({ type: user.role === "ADMIN" ? "admin" : "lab" })}
+                      onClick={() => openOverlay(panelFor(user))}
                     >
                       <LayoutDashboard className="me-1 h-4 w-4 text-orange-400" />
                       {t(user.role === "ADMIN" ? UI.nav.panel : UI.nav.dashboard, lang)}

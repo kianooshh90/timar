@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { createSession, hashPassword } from "@/lib/auth";
+import { createSession, hashPassword, publicUser, DESIGNER_EMAIL_DOMAIN } from "@/lib/auth";
 import { handleApiError, jsonError } from "@/lib/api";
 import crypto from "crypto";
 
@@ -11,6 +11,10 @@ export async function POST(req: NextRequest) {
     if (!email || !password || !name) return jsonError("MISSING_FIELDS");
     if (String(password).length < 6) return jsonError("WEAK_PASSWORD");
     const normalizedEmail = String(email).trim().toLowerCase();
+    // must look like an e-mail, and the internal designer domain is reserved
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail) || normalizedEmail.endsWith("@" + DESIGNER_EMAIL_DOMAIN)) {
+      return jsonError("INVALID_EMAIL");
+    }
     const existing = await db.user.findUnique({ where: { email: normalizedEmail } });
     if (existing) return jsonError("EMAIL_TAKEN", 409);
     const referralCode = `TDC-${crypto.randomBytes(3).toString("hex").toUpperCase()}`;
@@ -27,19 +31,7 @@ export async function POST(req: NextRequest) {
       },
     });
     await createSession(user.id);
-    return NextResponse.json({
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-        labName: user.labName,
-        phone: user.phone,
-        city: user.city,
-        points: user.points,
-        referralCode: user.referralCode,
-      },
-    });
+    return NextResponse.json({ user: publicUser(user) });
   } catch (e) {
     return handleApiError(e);
   }

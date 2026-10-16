@@ -1,33 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { createSession, verifyPassword } from "@/lib/auth";
+import { createSession, verifyPassword, publicUser } from "@/lib/auth";
 import { handleApiError, jsonError } from "@/lib/api";
 
+/** Labs and admins sign in with their e-mail, designers with the username chosen for them by the admin. */
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { email, password } = body ?? {};
-    if (!email || !password) return jsonError("MISSING_FIELDS");
-    const user = await db.user.findUnique({
-      where: { email: String(email).trim().toLowerCase() },
-    });
+    const { identifier, email, password } = body ?? {};
+    const id = String(identifier ?? email ?? "").trim().toLowerCase();
+    if (!id || !password) return jsonError("MISSING_FIELDS");
+    const user = id.includes("@")
+      ? await db.user.findUnique({ where: { email: id } })
+      : await db.user.findUnique({ where: { username: id } });
     if (!user) return jsonError("INVALID_CREDENTIALS", 401);
     const ok = await verifyPassword(String(password), user.password);
     if (!ok) return jsonError("INVALID_CREDENTIALS", 401);
+    if (!user.active) return jsonError("ACCOUNT_DISABLED", 403);
     await createSession(user.id);
-    return NextResponse.json({
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-        labName: user.labName,
-        phone: user.phone,
-        city: user.city,
-        points: user.points,
-        referralCode: user.referralCode,
-      },
-    });
+    return NextResponse.json({ user: publicUser(user) });
   } catch (e) {
     return handleApiError(e);
   }

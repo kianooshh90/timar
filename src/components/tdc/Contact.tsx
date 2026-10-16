@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useTdc, st, parseJson } from "./store";
+import { useTdc, st, parseJson, panelFor } from "./store";
 import { t, UI } from "./i18n";
 import { SectionHead } from "./SectionHead";
 import { toast } from "sonner";
@@ -223,7 +223,7 @@ export function CtaBand() {
   const { lang, user, openOverlay } = useTdc();
   const onSend = () => {
     if (!user) openOverlay({ type: "auth", tab: "register" });
-    else openOverlay({ type: user.role === "ADMIN" ? "admin" : "lab", tab: user.role === "ADMIN" ? "cases" : "newCase" });
+    else openOverlay(panelFor(user, true));
   };
   return (
     <section className="relative overflow-hidden bg-background py-20">

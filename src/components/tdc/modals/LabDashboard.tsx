@@ -22,6 +22,10 @@ export function LabDashboard() {
   const { lang, overlay, closeOverlay, user } = useTdc();
   const open = overlay?.type === "lab";
   const initialTab = overlay?.type === "lab" ? (overlay as { tab?: string }).tab ?? "myCases" : "myCases";
+  const [tab, setTab] = useState(initialTab);
+  useEffect(() => {
+    if (open) setTab(initialTab);
+  }, [open, initialTab]);
   if (!open) return null;
 
   return (
@@ -44,7 +48,7 @@ export function LabDashboard() {
         </div>
       </div>
 
-      <Tabs defaultValue={initialTab} className="flex min-h-0 flex-1 flex-col">
+      <Tabs value={tab} onValueChange={setTab} className="flex min-h-0 flex-1 flex-col">
         <TabsList className="mx-4 mt-3 flex w-fit gap-1 rounded-2xl bg-white/5 p-1 sm:mx-6">
           {[
             { key: "newCase", label: UI.lab.newCase, icon: Plus },
@@ -59,8 +63,8 @@ export function LabDashboard() {
         </TabsList>
 
         <div className="min-h-0 flex-1 overflow-y-auto thin-scroll p-4 sm:p-6">
-          <TabsContent value="newCase"><NewCaseForm /></TabsContent>
-          <TabsContent value="myCases"><MyCases /></TabsContent>
+          <TabsContent value="newCase"><NewCaseForm onSubmitted={() => setTab("myCases")} /></TabsContent>
+          <TabsContent value="myCases"><MyCases onNewCase={() => setTab("newCase")} /></TabsContent>
           <TabsContent value="profile"><LabProfile /></TabsContent>
         </div>
       </Tabs>
@@ -69,7 +73,7 @@ export function LabDashboard() {
 }
 
 /* ---------- New case ---------- */
-function NewCaseForm() {
+function NewCaseForm({ onSubmitted }: { onSubmitted: () => void }) {
   const { lang, refreshUser } = useTdc();
   const site = useTdc((s) => s.site);
   const services = site?.services ?? [];
@@ -93,8 +97,7 @@ function NewCaseForm() {
         setForm({ serviceType: "CROWN_BRIDGE", patientName: "", toothNumbers: "", notes: "" });
         setFiles([]);
         refreshUser();
-        // switch to myCases
-        document.querySelector<HTMLButtonElement>('[data-lab-tab="myCases"]')?.click();
+        onSubmitted(); // jump to "my cases"
       } else toast.error(t(UI.common.error, lang));
     } finally {
       setBusy(false);
@@ -158,7 +161,7 @@ function NewCaseForm() {
 }
 
 /* ---------- My cases ---------- */
-function MyCases() {
+function MyCases({ onNewCase }: { onNewCase: () => void }) {
   const { lang } = useTdc();
   const [cases, setCases] = useState<CaseItem[] | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -173,7 +176,7 @@ function MyCases() {
     return (
       <div className="py-20 text-center">
         <p className="text-white/40">{lang === "fa" ? "هنوز کیسی ندارید" : "No cases yet"}</p>
-        <Button className="mt-4 rounded-full bg-orange-500 font-bold text-white" onClick={() => document.querySelector<HTMLButtonElement>('[data-lab-tab="newCase"]')?.click()}>
+        <Button className="mt-4 rounded-full bg-orange-500 font-bold text-white" onClick={onNewCase}>
           <Plus className="me-1 h-4 w-4" />
           {t(UI.lab.newCase, lang)}
         </Button>

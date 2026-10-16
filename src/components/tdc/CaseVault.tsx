@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Download, Eye, FolderOpen } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { useTdc, parseJson, parseImageUrls, st, isLinkFile, type PortfolioItem, type SavedFile } from "./store";
+import { useTdc, parseJson, parseImageUrls, st, isLinkFile, type PortfolioItem, type SavedFile, panelFor } from "./store";
 import { t, UI, VAULT_FILTERS } from "./i18n";
 import { SectionHead } from "./SectionHead";
 
@@ -20,7 +20,7 @@ export function CaseVault() {
 
   const onSend = () => {
     if (!user) openOverlay({ type: "auth", tab: "register" });
-    else openOverlay({ type: user.role === "ADMIN" ? "admin" : "lab", tab: user.role === "ADMIN" ? "cases" : "newCase" });
+    else openOverlay(panelFor(user, true));
   };
 
   return (

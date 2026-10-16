@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { getSessionUser, hashPassword, verifyPassword } from "@/lib/auth";
+import { getSessionUser, hashPassword, verifyPassword, publicUser } from "@/lib/auth";
 import { handleApiError, jsonError } from "@/lib/api";
 
 export async function GET() {
@@ -19,6 +19,8 @@ export async function PATCH(req: NextRequest) {
   try {
     const session = await getSessionUser();
     if (!session) return jsonError("UNAUTHORIZED", 401);
+    // Designer credentials and profile are managed by the admin only
+    if (session.role === "DESIGNER") return jsonError("FORBIDDEN", 403);
     const body = await req.json();
     const data: Record<string, string> = {};
     if (body.name) data.name = String(body.name).trim();
@@ -38,19 +40,7 @@ export async function PATCH(req: NextRequest) {
       where: { id: session.id },
       data,
     });
-    return NextResponse.json({
-      user: {
-        id: updated.id,
-        email: updated.email,
-        name: updated.name,
-        role: updated.role,
-        labName: updated.labName,
-        phone: updated.phone,
-        city: updated.city,
-        points: updated.points,
-        referralCode: updated.referralCode,
-      },
-    });
+    return NextResponse.json({ user: publicUser(updated) });
   } catch (e) {
     return handleApiError(e);
   }

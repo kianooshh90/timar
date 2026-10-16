@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
+import { publicCase } from "@/lib/case-utils";
 import { handleApiError, jsonError } from "@/lib/api";
 
 /** Get messages of a case (owner or admin) */
@@ -23,7 +24,8 @@ export async function GET(
     if (user.role !== "ADMIN" && kase.userId !== user.id) {
       return jsonError("FORBIDDEN", 403);
     }
-    return NextResponse.json({ case: kase });
+    // the admin sees everything; a lab never receives designer assignments or internal scores
+    return NextResponse.json({ case: user.role === "ADMIN" ? kase : publicCase(kase) });
   } catch (e) {
     return handleApiError(e);
   }

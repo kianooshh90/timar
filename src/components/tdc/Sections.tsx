@@ -4,7 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { UploadCloud, PenTool, ShieldCheck, PackageCheck, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useTdc, parseJson, st } from "./store";
+import { useTdc, parseJson, st, panelFor } from "./store";
 import { t, UI } from "./i18n";
 import { SectionHead } from "./SectionHead";
 
@@ -25,7 +25,7 @@ export function Process() {
 
   const onCta = () => {
     if (!user) openOverlay({ type: "auth", tab: "register" });
-    else openOverlay({ type: user.role === "ADMIN" ? "admin" : "lab", tab: user.role === "ADMIN" ? "cases" : "newCase" });
+    else openOverlay(panelFor(user, true));
   };
 
   return (
