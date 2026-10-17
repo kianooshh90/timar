@@ -25,6 +25,11 @@ const LINKS = [
 
 export function Nav() {
   const { lang, setLang, user, site, openOverlay, logout, mobileMenu, setMobileMenu } = useTdc();
+
+  // Each role has its own panel label: admin, designer, lab (designers and labs also show their name)
+  const panelLabel =
+    user?.role === "ADMIN" ? UI.nav.panel : user?.role === "DESIGNER" ? UI.nav.designerPanel : UI.nav.dashboard;
+  const panelName = user && user.role !== "ADMIN" ? (user.role === "LAB" ? user.labName || user.name : user.name) : null;
   const [scrolled, setScrolled] = useState(false);
   const [hidden, setHidden] = useState(false);
   const [lastY, setLastY] = useState(0);
@@ -123,7 +128,8 @@ export function Nav() {
                     onClick={() => openOverlay(panelFor(user))}
                   >
                     <LayoutDashboard className="h-4 w-4 text-orange-400" />
-                    {t(user.role === "ADMIN" ? UI.nav.panel : UI.nav.dashboard, lang)}
+                    {t(panelLabel, lang)}
+                    {panelName && <span className="max-w-28 truncate text-xs font-normal text-white/45">· {panelName}</span>}
                   </Button>
                   <Button
                     size="sm"
@@ -192,7 +198,8 @@ export function Nav() {
                       onClick={() => openOverlay(panelFor(user))}
                     >
                       <LayoutDashboard className="me-1 h-4 w-4 text-orange-400" />
-                      {t(user.role === "ADMIN" ? UI.nav.panel : UI.nav.dashboard, lang)}
+                      {t(panelLabel, lang)}
+                      {panelName && <span className="ms-1 max-w-24 truncate text-xs font-normal text-white/50">· {panelName}</span>}
                     </Button>
                     <Button size="sm" variant="ghost" className="text-white/60" onClick={() => logout()}>
                       <LogOut className="h-4 w-4" />

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { revalidateSite } from "@/lib/revalidate";
-import { sanitizeFiles } from "@/lib/files";
+import { sanitizeFiles, sanitizeImages } from "@/lib/files";
 import { handleApiError, jsonError } from "@/lib/api";
 
 export async function PUT(
@@ -22,7 +22,7 @@ export async function PUT(
     if (body.descriptionEn !== undefined) data.descriptionEn = String(body.descriptionEn).trim() || null;
     if (body.category !== undefined) data.category = String(body.category);
     if (body.badge !== undefined) data.badge = String(body.badge).trim() || null;
-    if (body.images !== undefined) data.images = JSON.stringify(body.images);
+    if (body.images !== undefined) data.images = JSON.stringify(sanitizeImages(body.images));
     if (body.files !== undefined) data.files = JSON.stringify(sanitizeFiles(body.files));
     if (body.published !== undefined) data.published = !!body.published;
     if (body.sortOrder !== undefined) data.sortOrder = Number(body.sortOrder);

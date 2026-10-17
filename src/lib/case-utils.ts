@@ -11,6 +11,7 @@ export type EventType =
   | "RATED"
   | "SCORED"
   | "NOTE"
+  | "FILES_ADDED"
   | "STATUS";
 
 /** Append an entry to a case's activity log. Never throws: logging must not break the action itself. */

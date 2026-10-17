@@ -64,3 +64,45 @@ export function sanitizeFiles(input: unknown): CleanFile[] {
   }
   return out;
 }
+
+function isImagePath(path: string): boolean {
+  if (path.includes("..")) return false;
+  if (/^\/(images|samples)\/[A-Za-z0-9_\-./]+$/.test(path)) return true; // pictures bundled with the site
+  const u = parseHttpsUrl(path);
+  return !!u && u.hostname.endsWith(".supabase.co") && u.pathname.startsWith("/storage/v1/object/public/");
+}
+
+const num = (v: unknown, min: number, max: number, def: number) =>
+  typeof v === "number" && Number.isFinite(v) ? Math.min(max, Math.max(min, v)) : def;
+
+export interface CleanImage {
+  path: string;
+  name: string;
+  size: number;
+  fx: number;
+  fy: number;
+  zoom: number;
+  fit: "cover" | "contain";
+}
+
+/** Portfolio images: keeps only our own pictures and clamps the display settings (focus point, zoom, fit). */
+export function sanitizeImages(input: unknown): CleanImage[] {
+  if (!Array.isArray(input)) return [];
+  const out: CleanImage[] = [];
+  for (const raw of input.slice(0, 30)) {
+    const r = (typeof raw === "string" ? { path: raw } : raw) as Record<string, unknown> | null;
+    if (!r || typeof r !== "object") continue;
+    const path = typeof r.path === "string" ? r.path.trim() : "";
+    if (!path || path.length > 2000 || !isImagePath(path)) continue;
+    out.push({
+      path,
+      name: typeof r.name === "string" && r.name.trim() ? r.name.trim().slice(0, 200) : path.split("/").pop() || "image",
+      size: typeof r.size === "number" && Number.isFinite(r.size) && r.size >= 0 ? r.size : 0,
+      fx: num(r.fx, 0, 100, 50),
+      fy: num(r.fy, 0, 100, 50),
+      zoom: num(r.zoom, 1, 3, 1),
+      fit: r.fit === "contain" ? "contain" : "cover",
+    });
+  }
+  return out;
+}

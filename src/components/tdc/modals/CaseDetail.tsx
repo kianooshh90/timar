@@ -11,6 +11,7 @@ import { t, UI, CATEGORIES, fmtDate, fmtBytes } from "../i18n";
 import { FileDrop } from "../FileDrop";
 import { AdminWorkflowSection } from "./AdminWorkflow";
 import { LabFeedbackSection } from "./LabFeedback";
+import { AddCaseFiles } from "./AddCaseFiles";
 import { toast } from "sonner";
 
 export function parseSafe(json?: string): SavedFile[] {
@@ -203,6 +204,9 @@ function CaseDetailInner({
               </ul>
             </div>
           )}
+
+          {/* The lab can add more files to a case it already submitted */}
+          {!isAdmin && detail?.status !== "CANCELLED" && <AddCaseFiles caseId={kase.id} onAdded={refresh} />}
 
           {/* Delivery files */}
           {isAdmin ? (

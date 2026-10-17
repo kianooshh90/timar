@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { revalidateSite } from "@/lib/revalidate";
-import { sanitizeFiles } from "@/lib/files";
+import { sanitizeFiles, sanitizeImages } from "@/lib/files";
 import { handleApiError, jsonError } from "@/lib/api";
 
 export async function GET() {
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
         descriptionEn: descriptionEn ? String(descriptionEn).trim() : null,
         category: String(category),
         badge: badge ? String(badge).trim() : null,
-        images: JSON.stringify(Array.isArray(images) ? images : []),
+        images: JSON.stringify(sanitizeImages(images)),
         files: JSON.stringify(sanitizeFiles(files)),
         published: published !== false,
         sortOrder: (maxSort._max.sortOrder ?? 0) + 1,

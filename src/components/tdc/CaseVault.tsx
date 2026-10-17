@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Download, Eye, FolderOpen } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { useTdc, parseJson, parseImageUrls, st, isLinkFile, type PortfolioItem, type SavedFile, panelFor } from "./store";
+import { useTdc, parseJson, parseImages, imageStyle, st, isLinkFile, type PortfolioItem, type SavedFile, panelFor } from "./store";
 import { t, UI, VAULT_FILTERS } from "./i18n";
 import { SectionHead } from "./SectionHead";
 
@@ -82,11 +82,11 @@ export function CaseVault() {
 
 function VaultCard({ item }: { item: PortfolioItem }) {
   const { lang, openOverlay } = useTdc();
-  const images = parseImageUrls(item.images);
+  const images = parseImages(item.images);
   const files = parseJson<SavedFile[]>(item.files, []);
   const title = lang === "fa" ? item.title : item.titleEn || item.title;
   const desc = lang === "fa" ? item.description : item.descriptionEn || item.description;
-  const img = images[0] || "/images/portfolio/zirconia-crowns.png";
+  const cover = images[0] ?? { src: "/images/portfolio/zirconia-crowns.png", fx: 50, fy: 50, zoom: 1, fit: "cover" as const };
 
   return (
     <motion.article
@@ -103,13 +103,17 @@ function VaultCard({ item }: { item: PortfolioItem }) {
         aria-label={title}
       >
         <div className="relative aspect-[4/3] overflow-hidden bg-[#0d1014]">
-          <Image
-            src={img}
-            alt={title}
-            fill
-            sizes="(max-width:640px) 100vw, (max-width:1024px) 50vw, 33vw"
-            className="object-cover transition-transform duration-700 group-hover:scale-110"
-          />
+          {/* outer layer = hover zoom, inner image = the admin's own focus / zoom settings */}
+          <div className="absolute inset-0 transition-transform duration-700 group-hover:scale-110">
+            <Image
+              src={cover.src}
+              alt={title}
+              fill
+              sizes="(max-width:640px) 100vw, (max-width:1024px) 50vw, 33vw"
+              className="object-cover"
+              style={imageStyle(cover)}
+            />
+          </div>
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-80" />
           {item.badge && (
             <span className="absolute start-3 top-3 rounded-full bg-black/60 px-3 py-1 font-display text-[10px] font-bold tracking-[0.15em] text-orange-300 backdrop-blur">

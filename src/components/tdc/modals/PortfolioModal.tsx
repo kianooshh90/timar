@@ -5,7 +5,7 @@ import { Download, FileDown, FolderOpen, ArrowLeft } from "lucide-react";
 import Image from "next/image";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { useTdc, parseJson, parseImageUrls, isLinkFile, linkHost, type SavedFile, panelFor } from "../store";
+import { useTdc, parseJson, parseImages, imageStyle, isLinkFile, linkHost, type SavedFile, panelFor } from "../store";
 import { t, UI, fmtBytes } from "../i18n";
 
 export function PortfolioModal() {
@@ -26,7 +26,7 @@ export function PortfolioModal() {
     );
   }
 
-  const images = parseImageUrls(item.images);
+  const images = parseImages(item.images);
   const files = parseJson<SavedFile[]>(item.files, []);
   const title = lang === "fa" ? item.title : item.titleEn || item.title;
   const desc = lang === "fa" ? item.description : item.descriptionEn || item.description;
@@ -44,11 +44,12 @@ export function PortfolioModal() {
         <div className="relative aspect-[16/10] w-full overflow-hidden rounded-t-2xl bg-black">
           {images[imgIdx] && (
             <Image
-              src={images[imgIdx]}
+              src={images[imgIdx].src}
               alt={title}
               fill
               sizes="(max-width:768px) 100vw, 672px"
               className="object-cover"
+              style={imageStyle(images[imgIdx])}
               priority
             />
           )}

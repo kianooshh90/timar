@@ -15,6 +15,7 @@ export const EVENT_LABEL: Record<string, { fa: string; en: string; dot: string }
   RATED: { fa: "رضایت لابراتوار", en: "Lab satisfaction", dot: "bg-yellow-400" },
   SCORED: { fa: "امتیاز مدیریت", en: "Admin score", dot: "bg-purple-400" },
   NOTE: { fa: "یادداشت", en: "Note", dot: "bg-white/60" },
+  FILES_ADDED: { fa: "فایل جدید از لابراتوار", en: "New files from the lab", dot: "bg-orange-300" },
   STATUS: { fa: "تغییر وضعیت", en: "Status change", dot: "bg-white/40" },
 };
 

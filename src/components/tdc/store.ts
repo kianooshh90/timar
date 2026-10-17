@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { create } from "zustand";
 
 export type Lang = "fa" | "en";
@@ -9,6 +10,11 @@ export interface SavedFile {
   name: string; // original filename, or the note typed by the user for a link
   size: number; // 0 for links
   link?: boolean; // true = external link (Google Drive, Telegram, WeTransfer...), not a file stored by us
+  // --- display settings of a portfolio image (set by the admin) ---
+  fx?: number; // horizontal focus point, 0..100 (% of the image)
+  fy?: number; // vertical focus point, 0..100
+  zoom?: number; // 1..3  (1 = whole frame, 2 = twice as close...)
+  fit?: "cover" | "contain"; // cover = fill the frame (crop), contain = show the whole picture
 }
 
 /** External links are only ever rendered when they are plain https URLs. */
@@ -260,4 +266,45 @@ export function parseImageUrls(raw: string | undefined | null): string[] {
   return arr
     .map((x) => (typeof x === "string" ? x : (x as { path?: string } | null)?.path))
     .filter((x): x is string => typeof x === "string" && x.length > 0);
+}
+
+/** A portfolio image together with the admin's display settings. */
+export interface PortfolioImage {
+  src: string;
+  fx: number;
+  fy: number;
+  zoom: number;
+  fit: "cover" | "contain";
+}
+
+const clampNum = (n: unknown, min: number, max: number, def: number) =>
+  typeof n === "number" && Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : def;
+
+/** Reads the images of a portfolio item (plain URL strings from the seed data, or objects saved by the admin panel). */
+export function parseImages(raw: string | undefined | null): PortfolioImage[] {
+  const arr = parseJson<unknown[]>(raw, []);
+  const out: PortfolioImage[] = [];
+  for (const x of arr) {
+    const o = (typeof x === "string" ? { path: x } : x) as Record<string, unknown> | null;
+    const src = o && typeof o.path === "string" ? o.path : "";
+    if (!src) continue;
+    out.push({
+      src,
+      fx: clampNum(o?.fx, 0, 100, 50),
+      fy: clampNum(o?.fy, 0, 100, 50),
+      zoom: clampNum(o?.zoom, 1, 3, 1),
+      fit: o?.fit === "contain" ? "contain" : "cover",
+    });
+  }
+  return out;
+}
+
+/** CSS that shows an image the way the admin chose (focus point, zoom, fill / whole picture). */
+export function imageStyle(img: Pick<PortfolioImage, "fx" | "fy" | "zoom" | "fit">): CSSProperties {
+  return {
+    objectFit: img.fit,
+    objectPosition: `${img.fx}% ${img.fy}%`,
+    transformOrigin: `${img.fx}% ${img.fy}%`,
+    transform: img.zoom !== 1 ? `scale(${img.zoom})` : undefined,
+  };
 }

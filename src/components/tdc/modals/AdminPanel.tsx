@@ -15,11 +15,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { useTdc, type PortfolioItem, type ServiceItem, type CaseItem, type InquiryItem, type SavedFile } from "../store";
+import { useTdc, type PortfolioItem, type ServiceItem, type CaseItem, type InquiryItem, type SavedFile, parseImages } from "../store";
 import { t, UI, CATEGORIES, fmtToman, fmtDate, fmtBytes } from "../i18n";
 import { FileDrop } from "../FileDrop";
 import { CaseDetailDialog, parseSafe } from "./CaseDetail";
 import { AdminDesigners } from "./AdminDesigners";
+import { ImageAdjuster } from "./ImageAdjuster";
 import { AdminUsers } from "./AdminUsers";
 import { dueInfo } from "../case-events";
 import { toast } from "sonner";
@@ -261,6 +262,19 @@ const EMPTY_ITEM = {
   images: [] as SavedFile[], files: [] as SavedFile[],
 };
 
+/** Portfolio images as editable entries (the seed data stores plain URL strings; uploads store objects). */
+function normalizeImages(raw: string): SavedFile[] {
+  return parseImages(raw).map((im) => ({
+    path: im.src,
+    name: im.src.split("/").pop() || "image",
+    size: 0,
+    fx: im.fx,
+    fy: im.fy,
+    zoom: im.zoom,
+    fit: im.fit,
+  }));
+}
+
 function AdminPortfolio() {
   const { lang, refreshSite } = useTdc();
   const [items, setItems] = useState<PortfolioItem[] | null>(null);
@@ -351,7 +365,7 @@ function AdminPortfolio() {
                       category: item.category,
                       badge: item.badge ?? "",
                       published: item.published,
-                      images: parseSafe(item.images),
+                      images: normalizeImages(item.images),
                       files: parseSafe(item.files),
                     })}>
                       <Pencil className="h-3.5 w-3.5" />
@@ -414,7 +428,10 @@ function AdminPortfolio() {
               <div>
                 <Label className="text-white/70">عکس‌های نمونه‌کار</Label>
                 <div className="mt-1.5">
-                  <FileDrop kind="portfolio-image" value={editing.images} onChange={(files) => setEditing({ ...editing, images: files })} accept="image/*" />
+                  <FileDrop kind="portfolio-image" value={editing.images} onChange={(files) => setEditing((e) => (e ? { ...e, images: files } : e))} accept="image/*" />
+                </div>
+                <div className="mt-3">
+                  <ImageAdjuster images={editing.images} onChange={(images) => setEditing((e) => (e ? { ...e, images } : e))} />
                 </div>
               </div>
               <div>
